@@ -7,6 +7,7 @@ import TeacherPortal from './pages/teacher/TeacherPortal'
 import Classroom from './pages/teacher/Classroom'
 import ClassDetail from './pages/teacher/ClassDetail'
 import AdminPortal from './pages/admin/AdminPortal'
+import StudentList from './pages/admin/StudentList'
 
 function App() {
   return (
@@ -22,7 +23,14 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
+      <Route
+        path="/admin/students"
+        element={
+          <ProtectedRoute requiredRole={['school_admin', 'branch_manager']}>
+            <StudentList />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/teacher"
         element={

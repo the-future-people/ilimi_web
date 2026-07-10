@@ -19,7 +19,7 @@ const modules = [
     gradient: 'from-[#1e40af] to-[#3b82f6]',
     image: admissionsImg,
     href: '/admin/students',
-    available: false,
+    available: true,
   },
   {
     key: 'staff',
