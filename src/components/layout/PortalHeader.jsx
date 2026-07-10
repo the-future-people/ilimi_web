@@ -9,7 +9,7 @@ function PortalHeader() {
 
   return (
     <header className="bg-navy sticky top-0 z-50 shadow-lg border-b-4 border-gold">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 md:px-10 h-16 flex items-center justify-between gap-2">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 h-16 flex items-center justify-between gap-2">
         <a href="/redirect" className="flex items-center gap-2 min-w-0 flex-shrink-0">
           <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
             <span className="font-serif font-bold text-navy text-sm">I</span>

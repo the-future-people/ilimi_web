@@ -76,7 +76,7 @@ function AdminPortal() {
     <div className="min-h-screen">
       <PortalHeader />
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-7 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-8">
         {/* Greeting */}
         <div className="mb-7">
           <h1 className="font-serif text-2xl sm:text-3xl font-bold text-navy">

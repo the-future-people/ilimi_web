@@ -63,7 +63,7 @@ function StudentList() {
     <div className="min-h-screen">
       <PortalHeader />
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-7 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-8">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-gray-400 mb-5">
           <Link to="/admin" className="hover:text-navy transition">Dashboard</Link>
