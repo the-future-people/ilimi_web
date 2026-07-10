@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { motion, AnimatePresence } from 'framer-motion'
 import PortalHeader from '../../components/layout/PortalHeader'
 import { getStudentsByClassroom } from '../../api/students'
+import { getMyClassrooms } from '../../api/academics'
+import AttendancePanel from './AttendancePanel'
+import CAScoresPanel from './CAScoresPanel'
 
 const tabs = [
   { key: 'roster', label: 'Student Roster', available: true },
-  { key: 'attendance', label: 'Attendance', available: false },
-  { key: 'ca-scores', label: 'CA Scores', available: false },
+  { key: 'attendance', label: 'Attendance', available: true },
+  { key: 'ca-scores', label: 'CA Scores', available: true },
 ]
 
 function ClassDetail() {
@@ -20,6 +24,14 @@ function ClassDetail() {
     queryKey: ['classroom-students', classroomId],
     queryFn: () => getStudentsByClassroom(classroomId),
   })
+
+  const { data: classroomsData } = useQuery({
+    queryKey: ['my-classrooms'],
+    queryFn: getMyClassrooms,
+  })
+  const currentClassroom = (classroomsData?.data?.classrooms || []).find(
+    (c) => c.id === parseInt(classroomId)
+  )
 
   const students = data?.data?.students || []
 
@@ -89,8 +101,16 @@ function ClassDetail() {
             {students[0]?.classroom_name || 'Classroom'}
           </h1>
 
+          <AnimatePresence mode="wait">
           {activeTab === 'roster' && (
-            <div className="p-4 sm:p-6">
+            <motion.div
+              key="roster"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15, ease: 'easeInOut' }}
+              className="p-4 sm:p-6"
+            >
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                 <div className="text-sm text-gray-500">
                   {filteredStudents.length} student{filteredStudents.length !== 1 ? 's' : ''}
@@ -192,8 +212,33 @@ function ClassDetail() {
                   ))}
                 </div>
               )}
-            </div>
+            </motion.div>
           )}
+
+          {activeTab === 'attendance' && (
+            <motion.div
+              key="attendance"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15, ease: 'easeInOut' }}
+            >
+              <AttendancePanel classroomId={classroomId} />
+            </motion.div>
+          )}
+
+          {activeTab === 'ca-scores' && currentClassroom && (
+            <motion.div
+              key="ca-scores"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15, ease: 'easeInOut' }}
+            >
+              <CAScoresPanel classroomId={classroomId} subjects={currentClassroom.subjects} />
+            </motion.div>
+          )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

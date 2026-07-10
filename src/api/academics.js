@@ -14,3 +14,8 @@ export async function getMyClassrooms() {
   const response = await api.get('/staff/my-classrooms/')
   return response.data
 }
+
+export async function getClassroomCurrentTerm(classroomId) {
+  const response = await api.get(`/staff/classrooms/${classroomId}/current-term/`)
+  return response.data
+}
