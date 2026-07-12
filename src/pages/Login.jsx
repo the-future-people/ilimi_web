@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 function Login() {
@@ -80,6 +80,10 @@ function Login() {
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
+
+          <p className="text-center text-xs text-gray-400 mt-2">
+            New to Ilimi? <Link to="/register" className="text-[#1a2946] font-semibold hover:underline">Create an account</Link>
+          </p>
         </form>
       </div>
     </div>

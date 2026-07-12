@@ -9,13 +9,24 @@ import ClassDetail from './pages/teacher/ClassDetail'
 import AdminPortal from './pages/admin/AdminPortal'
 import StudentList from './pages/admin/StudentList'
 import StudentDetail from './pages/admin/StudentDetail'
+import EnrolWizard from './pages/admin/EnrolWizard'
+import Register from './pages/Register'
 
 function App() {
   return (
     <Routes>
+      <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
       <Route path="/select-membership" element={<SelectMembership />} />
       <Route path="/redirect" element={<RoleRedirect />} />
+      <Route
+        path="/admin/students/enrol"
+        element={
+          <ProtectedRoute requiredRole={['school_admin', 'branch_manager']}>
+            <EnrolWizard />
+          </ProtectedRoute>
+        }
+      />
       <Route
               path="/teacher/classroom"
               element={

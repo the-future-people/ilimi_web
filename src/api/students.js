@@ -19,3 +19,13 @@ export async function enrolStudent(payload) {
   const response = await api.post('/students/', payload)
   return response.data
 }
+
+export async function changeStudentClass(studentId, payload) {
+  const response = await api.post(`/students/${studentId}/change-class/`, payload)
+  return response.data
+}
+
+export async function bulkChangeStudentClass(payload) {
+  const response = await api.post('/students/bulk-change-class/', payload)
+  return response.data
+}

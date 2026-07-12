@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import PortalHeader from '../../components/layout/PortalHeader'
-import { getStudentDetail } from '../../api/students'
+import { getStudentDetail, changeStudentClass } from '../../api/students'
+import { getSchoolClassrooms } from '../../api/academics'
 
 const tabs = [
   { key: 'overview', label: 'Overview' },
@@ -29,14 +30,49 @@ function InfoRow({ label, value }) {
 
 function StudentDetail() {
   const { studentId } = useParams()
+  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState('overview')
   const [isScrolled, setIsScrolled] = useState(false)
+  const [showClassModal, setShowClassModal] = useState(false)
+  const [selectedClassroom, setSelectedClassroom] = useState('')
+  const [classChangeRemarks, setClassChangeRemarks] = useState('')
+  const [changingClass, setChangingClass] = useState(false)
+  const [classChangeError, setClassChangeError] = useState('')
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['student-detail', studentId],
     queryFn: () => getStudentDetail(studentId),
   })
   const student = data?.data || data
+
+  const { data: classroomsData } = useQuery({
+    queryKey: ['school-classrooms'],
+    queryFn: getSchoolClassrooms,
+  })
+  const classrooms = classroomsData?.data?.classrooms || []
+
+  const handleChangeClass = async () => {
+    if (!selectedClassroom) {
+      setClassChangeError('Please select a class.')
+      return
+    }
+    setChangingClass(true)
+    setClassChangeError('')
+    try {
+      await changeStudentClass(studentId, {
+        classroom_id: selectedClassroom,
+        remarks: classChangeRemarks,
+      })
+      await queryClient.invalidateQueries({ queryKey: ['student-detail', studentId] })
+      setShowClassModal(false)
+      setSelectedClassroom('')
+      setClassChangeRemarks('')
+    } catch (err) {
+      setClassChangeError(err.response?.data?.message || 'Failed to change class.')
+    } finally {
+      setChangingClass(false)
+    }
+  }
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 8)
@@ -123,12 +159,16 @@ function StudentDetail() {
               <h1 className="font-serif text-xl sm:text-2xl font-bold text-navy truncate">{student.full_name}</h1>
               <div className="flex items-center gap-2 flex-wrap mt-1">
                 <span className="text-xs text-gray-400">{student.student_id}</span>
-                {student.classroom_name && (
-                  <>
-                    <span className="text-gray-200">·</span>
-                    <span className="text-xs text-blue-600 font-medium">{student.classroom_name}</span>
-                  </>
-                )}
+                <span className="text-gray-200">·</span>
+                <button
+                  onClick={() => { setSelectedClassroom(student.current_class || ''); setShowClassModal(true); }}
+                  className="text-xs text-blue-600 font-medium hover:underline flex items-center gap-1"
+                >
+                  {student.classroom_name || 'Unassigned'}
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${statusStyles[student.status] || 'bg-gray-100 text-gray-500'}`}>
                   {student.status}
                 </span>
@@ -238,6 +278,68 @@ function StudentDetail() {
           )}
         </div>
       </div>
+
+      {/* Change Class Modal */}
+      {showClassModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => !changingClass && setShowClassModal(false)}>
+          <div className="bg-white rounded-2xl p-5 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="font-serif text-lg font-bold text-navy mb-1">Change Class</div>
+            <div className="text-xs text-gray-400 mb-4">
+              Currently: <span className="font-semibold text-navy">{student.classroom_name || 'Unassigned'}</span>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 mb-1.5 block">New Class</label>
+                <select
+                  value={selectedClassroom}
+                  onChange={(e) => setSelectedClassroom(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-gold"
+                >
+                  <option value="">Select a class...</option>
+                  {classrooms.map((c) => (
+                    <option key={c.id} value={c.id}>{c.full_name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-500 mb-1.5 block">Remarks (optional)</label>
+                <textarea
+                  rows={2}
+                  value={classChangeRemarks}
+                  onChange={(e) => setClassChangeRemarks(e.target.value)}
+                  placeholder="e.g. Promoted, transferred, corrected placement..."
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-gold"
+                />
+              </div>
+
+              {classChangeError && (
+                <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                  {classChangeError}
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 mt-2">
+                <button
+                  onClick={() => setShowClassModal(false)}
+                  disabled={changingClass}
+                  className="flex-1 bg-gray-100 text-gray-600 text-sm font-bold py-2.5 rounded-lg hover:bg-gray-200 transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleChangeClass}
+                  disabled={changingClass}
+                  className="flex-1 bg-navy text-white text-sm font-bold py-2.5 rounded-lg hover:bg-navy-light transition disabled:opacity-50"
+                >
+                  {changingClass ? 'Saving...' : 'Confirm'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
