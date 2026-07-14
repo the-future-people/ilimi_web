@@ -24,3 +24,8 @@ export async function getSchoolClassrooms() {
   const response = await api.get('/academics/my-classrooms/')
   return response.data
 }
+
+export async function markTourSeen(memberId) {
+  const response = await api.post(`/schools/my-memberships/${memberId}/mark-tour-seen/`)
+  return response.data
+}

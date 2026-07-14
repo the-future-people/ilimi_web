@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  registerStep1, sendInitialOtp, verifyOtp, resendOtp,
-  registerSchool, getMyMemberships,
-} from '../api/auth'
+import { startRegistration, resendPendingOtp, verifyAndCreate, getMyMemberships } from '../api/auth'
+import { useAvailabilityCheck } from '../hooks/useAvailabilityCheck'
+import AvailabilityIndicator from '../components/AvailabilityIndicator'
 
 const SCHOOL_TYPE_CHOICES = [
   { value: '', label: 'Select...' },
@@ -34,9 +33,9 @@ const inputErrorClass = "w-full px-3.5 py-2.5 sm:py-3 border border-red-300 roun
 const labelClass = "text-[11px] font-semibold text-gray-400 uppercase tracking-wide"
 
 const stepDefs = [
-  { key: 'details', index: 1, title: 'Your Details', subtitle: 'Tell us about yourself' },
-  { key: 'verify', index: 2, title: 'Verify Phone', subtitle: 'Confirm your number' },
-  { key: 'school', index: 3, title: 'School Info', subtitle: 'About your school' },
+  { key: 'school', index: 1, title: 'School Info', subtitle: 'About your school' },
+  { key: 'details', index: 2, title: 'Your Details', subtitle: 'Tell us about yourself' },
+  { key: 'verify', index: 3, title: 'Verify Phone', subtitle: 'Confirm your number' },
 ]
 
 function StepIndicator({ status, index, size = 'md' }) {
@@ -56,11 +55,57 @@ function StepIndicator({ status, index, size = 'md' }) {
 
 function FormFields({
   section, form, errors, loading, otp, setOtp, resendCooldown, otpSending,
-  update, handleStep1Submit, handleOtpSubmit, handleSchoolSubmit, handleResend,
+  update, handleSchoolSubmit, handleDetailsSubmit, handleOtpSubmit, handleResend,
+  emailCheck, phoneCheck, schoolEmailCheck,
 }) {
+  if (section === 'school') {
+    return (
+      <form onSubmit={handleSchoolSubmit} className="flex flex-col gap-3.5">
+        <div>
+          <label className={labelClass}>School Name</label>
+          <input className={errors.school_name ? inputErrorClass : inputClass} value={form.school_name} onChange={(e) => update('school_name', e.target.value)} required />
+          {errors.school_name && <span className="text-[11px] text-red-500">{errors.school_name[0] || errors.school_name}</span>}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="relative">
+            <label className={labelClass}>School Email <span className="text-gray-300 normal-case">(optional)</span></label>
+            <input type="email" className={inputClass} value={form.school_email} onChange={(e) => update('school_email', e.target.value)} placeholder="Uses your email if blank" />
+            <AvailabilityIndicator status={schoolEmailCheck.status} />
+            {schoolEmailCheck.status === 'taken' && <span className="text-[11px] text-red-500">{schoolEmailCheck.message}</span>}
+          </div>
+          <div>
+            <label className={labelClass}>School Phone <span className="text-gray-300 normal-case">(optional)</span></label>
+            <input className={inputClass} value={form.school_phone} onChange={(e) => update('school_phone', e.target.value)} placeholder="Uses your phone if blank" />
+          </div>
+        </div>
+        <div>
+          <label className={labelClass}>City</label>
+          <input className={inputClass} value={form.city} onChange={(e) => update('city', e.target.value)} required />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className={labelClass}>School Type</label>
+            <select className={inputClass} value={form.school_type} onChange={(e) => update('school_type', e.target.value)}>
+              {SCHOOL_TYPE_CHOICES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={labelClass}>Student Count</label>
+            <select className={inputClass} value={form.expected_student_count} onChange={(e) => update('expected_student_count', e.target.value)}>
+              {STUDENT_COUNT_CHOICES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+        </div>
+        <button type="submit" disabled={loading} className="mt-1 w-full py-2.5 sm:py-3 bg-gold text-navy font-bold rounded-lg hover:bg-gold-light transition disabled:opacity-50 text-sm">
+          Continue
+        </button>
+      </form>
+    )
+  }
+
   if (section === 'details') {
     return (
-      <form onSubmit={handleStep1Submit} className="flex flex-col gap-3.5">
+      <form onSubmit={handleDetailsSubmit} className="flex flex-col gap-3.5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className={labelClass}>First Name</label>
@@ -73,14 +118,18 @@ function FormFields({
             {errors.last_name && <span className="text-[11px] text-red-500">{errors.last_name[0] || errors.last_name}</span>}
           </div>
         </div>
-        <div>
+        <div className="relative">
           <label className={labelClass}>Email</label>
           <input type="email" className={errors.email ? inputErrorClass : inputClass} value={form.email} onChange={(e) => update('email', e.target.value)} required />
+          <AvailabilityIndicator status={emailCheck.status} />
+          {emailCheck.status === 'taken' && <span className="text-[11px] text-red-500">{emailCheck.message}</span>}
           {errors.email && <span className="text-[11px] text-red-500">{errors.email[0] || errors.email}</span>}
         </div>
-        <div>
+        <div className="relative">
           <label className={labelClass}>Phone Number</label>
-          <input placeholder="+233XXXXXXXXX" className={errors.phone_number ? inputErrorClass : inputClass} value={form.phone_number} onChange={(e) => update('phone_number', e.target.value)} required />
+          <input placeholder="0244558389" className={errors.phone_number ? inputErrorClass : inputClass} value={form.phone_number} onChange={(e) => update('phone_number', e.target.value)} required />
+          <AvailabilityIndicator status={phoneCheck.status} />
+          {(phoneCheck.status === 'taken' || phoneCheck.status === 'invalid') && <span className="text-[11px] text-red-500">{phoneCheck.message}</span>}
           {errors.phone_number && <span className="text-[11px] text-red-500">{errors.phone_number[0] || errors.phone_number}</span>}
         </div>
         <div>
@@ -107,87 +156,44 @@ function FormFields({
         </label>
         {errors.terms && <span className="text-[11px] text-red-500 -mt-2">{errors.terms}</span>}
         <button type="submit" disabled={loading} className="mt-1 w-full py-2.5 sm:py-3 bg-gold text-navy font-bold rounded-lg hover:bg-gold-light transition disabled:opacity-50 text-sm">
-          {loading ? 'Saving...' : 'Continue'}
-        </button>
-      </form>
-    )
-  }
-
-  if (section === 'verify') {
-    return (
-      <form onSubmit={handleOtpSubmit} className="flex flex-col gap-3.5">
-        <p className="text-xs text-gray-400">
-          {otpSending
-            ? 'Sending a code to your phone...'
-            : <>We sent a 6-digit code to <span className="font-semibold text-navy">{form.phone_number}</span></>}
-        </p>
-        <input
-          inputMode="numeric"
-          maxLength={6}
-          placeholder="000000"
-          disabled={otpSending}
-          className={`${inputClass} text-center text-xl sm:text-2xl font-bold tracking-[0.4em] sm:tracking-[0.5em] py-3 sm:py-4 disabled:opacity-50`}
-          value={otp}
-          onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-          required
-        />
-        <button type="submit" disabled={loading || otpSending || otp.length !== 6} className="w-full py-2.5 sm:py-3 bg-gold text-navy font-bold rounded-lg hover:bg-gold-light transition disabled:opacity-50 text-sm">
-          {loading ? 'Verifying...' : 'Verify & Continue'}
-        </button>
-        <button type="button" onClick={handleResend} disabled={resendCooldown > 0 || otpSending} className="text-center text-xs text-gray-400 hover:text-navy transition disabled:opacity-50">
-          {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Didn't get a code? Resend"}
+          {loading ? 'Sending code...' : 'Continue'}
         </button>
       </form>
     )
   }
 
   return (
-    <form onSubmit={handleSchoolSubmit} className="flex flex-col gap-3.5">
-      <div>
-        <label className={labelClass}>School Name</label>
-        <input className={errors.school_name ? inputErrorClass : inputClass} value={form.school_name} onChange={(e) => update('school_name', e.target.value)} required />
-        {errors.school_name && <span className="text-[11px] text-red-500">{errors.school_name[0] || errors.school_name}</span>}
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className={labelClass}>School Email <span className="text-gray-300 normal-case">(optional)</span></label>
-          <input type="email" className={inputClass} value={form.school_email} onChange={(e) => update('school_email', e.target.value)} placeholder="Uses your email if left blank" />
-        </div>
-        <div>
-          <label className={labelClass}>School Phone <span className="text-gray-300 normal-case">(optional)</span></label>
-          <input className={inputClass} value={form.school_phone} onChange={(e) => update('school_phone', e.target.value)} placeholder="Uses your phone if left blank" />
-        </div>
-      </div>
-      <div>
-        <label className={labelClass}>City</label>
-        <input className={inputClass} value={form.city} onChange={(e) => update('city', e.target.value)} required />
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className={labelClass}>School Type</label>
-          <select className={inputClass} value={form.school_type} onChange={(e) => update('school_type', e.target.value)}>
-            {SCHOOL_TYPE_CHOICES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className={labelClass}>Student Count</label>
-          <select className={inputClass} value={form.expected_student_count} onChange={(e) => update('expected_student_count', e.target.value)}>
-            {STUDENT_COUNT_CHOICES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </div>
-      </div>
-      <button type="submit" disabled={loading} className="mt-1 w-full py-2.5 sm:py-3 bg-gold text-navy font-bold rounded-lg hover:bg-gold-light transition disabled:opacity-50 text-sm">
-        {loading ? 'Setting up...' : 'Complete Setup'}
+    <form onSubmit={handleOtpSubmit} className="flex flex-col gap-3.5">
+      <p className="text-xs text-gray-400">
+        {otpSending
+          ? 'Sending a code to your phone...'
+          : <>We sent a 6-digit code to <span className="font-semibold text-navy">{form.phone_number}</span></>}
+      </p>
+      <input
+        inputMode="numeric"
+        maxLength={6}
+        placeholder="000000"
+        disabled={otpSending}
+        className={`${inputClass} text-center text-xl sm:text-2xl font-bold tracking-[0.4em] sm:tracking-[0.5em] py-3 sm:py-4 disabled:opacity-50`}
+        value={otp}
+        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+        required
+      />
+      <button type="submit" disabled={loading || otpSending || otp.length !== 6} className="w-full py-2.5 sm:py-3 bg-gold text-navy font-bold rounded-lg hover:bg-gold-light transition disabled:opacity-50 text-sm">
+        Verify & Continue
+      </button>
+      <button type="button" onClick={handleResend} disabled={resendCooldown > 0 || otpSending} className="text-center text-xs text-gray-400 hover:text-navy transition disabled:opacity-50">
+        {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Didn't get a code? Resend"}
       </button>
     </form>
   )
 }
 
 function Register() {
-  const [activeSection, setActiveSection] = useState('details')
-  const [detailsStatus, setDetailsStatus] = useState('active')
+  const [activeSection, setActiveSection] = useState('school')
+  const [schoolStatus, setSchoolStatus] = useState('active')
+  const [detailsStatus, setDetailsStatus] = useState('pending')
   const [verifyStatus, setVerifyStatus] = useState('pending')
-  const [schoolStatus, setSchoolStatus] = useState('pending')
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -196,10 +202,10 @@ function Register() {
   const otpSentRef = useRef(false)
 
   const [form, setForm] = useState({
-    first_name: '', last_name: '', email: '', phone_number: '',
-    password: '', confirm_password: '', terms: false, position_title: '',
     school_name: '', school_email: '', school_phone: '', city: '',
     school_type: '', expected_student_count: '',
+    first_name: '', last_name: '', email: '', phone_number: '',
+    password: '', confirm_password: '', terms: false, position_title: '',
   })
 
   const [otp, setOtp] = useState('')
@@ -210,6 +216,10 @@ function Register() {
   const apiDoneRef = useRef(false)
   const apiResultRef = useRef(null)
 
+  const emailCheck = useAvailabilityCheck('email', form.email, { minLength: 5 })
+  const phoneCheck = useAvailabilityCheck('phone_number', form.phone_number, { minLength: 9 })
+  const schoolEmailCheck = useAvailabilityCheck('school_email', form.school_email, { minLength: 5 })
+
   const processSteps = [
     'Processing your details...',
     `Integrating ${form.school_name || 'your school'} into Ilimi...`,
@@ -217,11 +227,26 @@ function Register() {
     'All clear!',
   ]
 
-  const statusFor = { details: detailsStatus, verify: verifyStatus, school: schoolStatus }
+  const statusFor = { school: schoolStatus, details: detailsStatus, verify: verifyStatus }
 
   const update = (field, value) => setForm((prev) => ({ ...prev, [field]: value }))
 
-  const handleStep1Submit = async (e) => {
+  const handleSchoolSubmit = (e) => {
+    e.preventDefault()
+    setError('')
+    setErrors({})
+
+    if (schoolEmailCheck.status === 'taken') {
+      setError('That school email is already in use.')
+      return
+    }
+
+    setSchoolStatus('completed')
+    setDetailsStatus('active')
+    setActiveSection('details')
+  }
+
+  const handleDetailsSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setErrors({})
@@ -234,6 +259,14 @@ function Register() {
       setErrors({ confirm_password: 'Passwords do not match.' })
       return
     }
+    if (emailCheck.status === 'taken') {
+      setErrors({ email: 'This email is already in use.' })
+      return
+    }
+    if (phoneCheck.status === 'taken' || phoneCheck.status === 'invalid') {
+      setErrors({ phone_number: phoneCheck.message })
+      return
+    }
 
     if (detailsStatus === 'completed') {
       setActiveSection('verify')
@@ -242,14 +275,22 @@ function Register() {
 
     setLoading(true)
     try {
-      await registerStep1({
+      await startRegistration({
         first_name: form.first_name,
         last_name: form.last_name,
         email: form.email,
         phone_number: form.phone_number,
         password: form.password,
         confirm_password: form.confirm_password,
+        position_title: form.position_title,
+        school_name: form.school_name,
+        school_email: form.school_email,
+        school_phone: form.school_phone,
+        city: form.city,
+        school_type: form.school_type,
+        expected_student_count: form.expected_student_count,
       })
+      otpSentRef.current = true // start_registration already sent the first OTP
       setDetailsStatus('completed')
       setVerifyStatus('active')
       setActiveSection('verify')
@@ -262,76 +303,22 @@ function Register() {
     }
   }
 
-  // Trigger the actual OTP send once the verify step becomes active — not before
-  useEffect(() => {
-    if (activeSection !== 'verify' || otpSentRef.current) return
-    otpSentRef.current = true
-    setOtpSending(true)
-    sendInitialOtp(form.phone_number)
-      .catch((err) => {
-        setError(err.response?.data?.message || 'Failed to send verification code.')
-      })
-      .finally(() => setOtpSending(false))
-  }, [activeSection])
-
   const handleOtpSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    setLoading(true)
-    try {
-      const result = await verifyOtp(form.phone_number, otp)
-      const payload = result.data || result
-
-      localStorage.setItem('access_token', payload.tokens.access)
-      localStorage.setItem('refresh_token', payload.tokens.refresh)
-      localStorage.setItem('user', JSON.stringify(payload.user))
-
-      setVerifyStatus('completed')
-      setSchoolStatus('active')
-      setActiveSection('school')
-    } catch (err) {
-      setError(err.response?.data?.message || 'Invalid verification code. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleResend = async () => {
-    if (resendCooldown > 0) return
-    setError('')
-    try {
-      await resendOtp(form.phone_number)
-      setResendCooldown(60)
-      const interval = setInterval(() => {
-        setResendCooldown((prev) => {
-          if (prev <= 1) { clearInterval(interval); return 0 }
-          return prev - 1
-        })
-      }, 1000)
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to resend code.')
-    }
-  }
-
-  const handleSchoolSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-    setErrors({})
     setPhase('processing')
     setProcessStep(0)
     apiDoneRef.current = false
     apiResultRef.current = null
 
-    registerSchool({
-      school_name: form.school_name,
-      school_email: form.school_email,
-      school_phone: form.school_phone,
-      city: form.city,
-      school_type: form.school_type,
-      expected_student_count: form.expected_student_count,
-      position_title: form.position_title,
-    })
-      .then(async () => {
+    verifyAndCreate(form.phone_number, otp)
+      .then(async (result) => {
+        const payload = result.data || result
+
+        localStorage.setItem('access_token', payload.tokens.access)
+        localStorage.setItem('refresh_token', payload.tokens.refresh)
+        localStorage.setItem('user', JSON.stringify(payload.user))
+
         const membershipData = await getMyMemberships()
         const membershipList = membershipData.data?.memberships || membershipData.memberships || []
 
@@ -344,14 +331,29 @@ function Register() {
         apiDoneRef.current = true
       })
       .catch((err) => {
-        const data = err.response?.data
         apiResultRef.current = {
           success: false,
-          message: data?.message || 'Something went wrong setting up your school.',
-          fieldErrors: data?.errors,
+          message: err.response?.data?.message || 'Invalid verification code. Please try again.',
         }
         apiDoneRef.current = true
       })
+  }
+
+  const handleResend = async () => {
+    if (resendCooldown > 0) return
+    setError('')
+    try {
+      await resendPendingOtp(form.phone_number)
+      setResendCooldown(60)
+      const interval = setInterval(() => {
+        setResendCooldown((prev) => {
+          if (prev <= 1) { clearInterval(interval); return 0 }
+          return prev - 1
+        })
+      }, 1000)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to resend code.')
+    }
   }
 
   useEffect(() => {
@@ -384,10 +386,9 @@ function Register() {
         const result = apiResultRef.current
         setTimeout(() => {
           if (result.success) {
-            setSchoolStatus('completed')
+            setVerifyStatus('completed')
             setPhase('success')
           } else {
-            if (result.fieldErrors) setErrors(result.fieldErrors)
             setError(result.message)
             setPhase('error')
           }
@@ -399,15 +400,41 @@ function Register() {
   }, [phase, processStep])
 
   const editSection = (key) => {
-    if (key === 'details' && detailsStatus === 'completed') {
+    if (key === 'school' && schoolStatus === 'completed') {
+      setSchoolStatus('active')
+      if (detailsStatus === 'active') setDetailsStatus('pending')
+      if (verifyStatus === 'active') setVerifyStatus('pending')
+      setActiveSection('school')
+    } else if (key === 'details' && detailsStatus === 'completed') {
       setDetailsStatus('active')
       if (verifyStatus === 'active') setVerifyStatus('pending')
       setActiveSection('details')
     }
   }
 
-  const [displaySection, setDisplaySection] = useState('details')
+  const [displaySection, setDisplaySection] = useState('school')
   const [transitioning, setTransitioning] = useState(false)
+
+  const scrollRef = useRef(null)
+  const [canScrollUp, setCanScrollUp] = useState(false)
+  const [canScrollDown, setCanScrollDown] = useState(false)
+
+  const checkVerticalScroll = () => {
+    const el = scrollRef.current
+    if (!el) return
+    setCanScrollUp(el.scrollTop > 4)
+    setCanScrollDown(el.scrollTop + el.clientHeight < el.scrollHeight - 4)
+  }
+
+  useEffect(() => {
+    checkVerticalScroll()
+  }, [displaySection, errors])
+
+  const scrollPanel = (direction) => {
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollBy({ top: direction === 'up' ? -100 : 100, behavior: 'smooth' })
+  }
 
   useEffect(() => {
     if (activeSection === displaySection) return
@@ -434,7 +461,7 @@ function Register() {
           <div className="flex flex-col">
             {stepDefs.map((s, i) => {
               const status = statusFor[s.key]
-              const clickable = status === 'completed' && s.key === 'details'
+              const clickable = status === 'completed'
               const isLast = i === stepDefs.length - 1
               const lineActive = status === 'completed'
               return (
@@ -471,8 +498,8 @@ function Register() {
             {stepDefs.map((s, i) => (
               <div key={s.key} className="flex items-center flex-1">
                 <button
-                  onClick={() => statusFor[s.key] === 'completed' && s.key === 'details' && editSection(s.key)}
-                  disabled={!(statusFor[s.key] === 'completed' && s.key === 'details')}
+                  onClick={() => statusFor[s.key] === 'completed' && editSection(s.key)}
+                  disabled={statusFor[s.key] !== 'completed'}
                   className="flex-shrink-0"
                 >
                   <StepIndicator status={statusFor[s.key]} index={s.index} size="sm" />
@@ -486,9 +513,35 @@ function Register() {
         </div>
 
         {/* Content panel */}
-        <div className="flex-1 p-5 sm:p-7 md:p-8 min-h-[480px] sm:min-h-[460px] flex flex-col">
+        <div className="flex-1 p-5 sm:p-7 md:p-8 h-[560px] sm:h-[540px] flex flex-col overflow-hidden relative">
+          {canScrollUp && (
+            <button
+              onClick={() => scrollPanel('up')}
+              className="absolute top-0 left-0 right-0 z-10 h-14 flex items-start justify-center pt-2 bg-gradient-to-b from-white via-white to-transparent"
+            >
+              <div className="w-7 h-7 rounded-full bg-white shadow-md border border-gray-100 flex items-center justify-center">
+                <svg className="w-4 h-4 text-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 15l7-7 7 7" />
+                </svg>
+              </div>
+            </button>
+          )}
+          {canScrollDown && (
+            <button
+              onClick={() => scrollPanel('down')}
+              className="absolute bottom-0 left-0 right-0 z-10 h-14 flex items-end justify-center pb-2 bg-gradient-to-t from-white via-white to-transparent"
+            >
+              <div className="w-7 h-7 rounded-full bg-white shadow-md border border-gray-100 flex items-center justify-center">
+                <svg className="w-4 h-4 text-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </button>
+          )}
           <div
-            className="flex-1 transition-all duration-200 ease-out"
+            ref={scrollRef}
+            onScroll={checkVerticalScroll}
+            className="flex-1 overflow-y-auto no-scrollbar transition-all duration-200 ease-out"
             style={{
               opacity: transitioning ? 0 : 1,
               transform: transitioning ? 'translateY(-10px) scaleY(0.98)' : 'translateY(0) scaleY(1)',
@@ -508,18 +561,21 @@ function Register() {
 
             <FormFields
               section={displaySection}
-            form={form}
-            errors={errors}
-            loading={loading}
-            otp={otp}
-            setOtp={setOtp}
-            resendCooldown={resendCooldown}
-            otpSending={otpSending}
-            update={update}
-            handleStep1Submit={handleStep1Submit}
-            handleOtpSubmit={handleOtpSubmit}
-            handleSchoolSubmit={handleSchoolSubmit}
-            handleResend={handleResend}
+              form={form}
+              errors={errors}
+              loading={loading}
+              otp={otp}
+              setOtp={setOtp}
+              resendCooldown={resendCooldown}
+              otpSending={otpSending}
+              update={update}
+              handleSchoolSubmit={handleSchoolSubmit}
+              handleDetailsSubmit={handleDetailsSubmit}
+              handleOtpSubmit={handleOtpSubmit}
+              handleResend={handleResend}
+              emailCheck={emailCheck}
+              phoneCheck={phoneCheck}
+              schoolEmailCheck={schoolEmailCheck}
             />
           </div>
 
@@ -568,7 +624,15 @@ function Register() {
               </svg>
             </div>
             <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white mb-2">Welcome to Ilimi!</h2>
-            <p className="text-white/60 text-sm mb-8">{form.school_name} is all set up and ready to go.</p>
+            <p className="text-white/60 text-sm mb-6">{form.school_name} is all set up and ready to go.</p>
+            <div className="flex items-center gap-2 text-white/40 text-xs">
+              <div className="flex gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-gold animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-gold animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-gold animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+              <span>Redirecting to your portal, hold on tight...</span>
+            </div>
             <RedirectOnSuccess />
           </div>
         </div>
@@ -583,7 +647,7 @@ function Register() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
-            <h2 className="font-serif text-xl font-bold text-white mb-2">Setup Failed</h2>
+            <h2 className="font-serif text-xl font-bold text-white mb-2">Verification Failed</h2>
             <p className="text-white/60 text-sm mb-6">{error}</p>
             <button onClick={() => setPhase('form')} className="bg-gold text-navy text-sm font-bold px-6 py-2.5 rounded-lg hover:bg-gold-light transition">
               Try Again

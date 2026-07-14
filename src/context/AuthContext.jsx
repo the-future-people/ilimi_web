@@ -60,6 +60,15 @@ export function AuthProvider({ children }) {
     setActiveMember(member)
   }
 
+  const updateActiveMember = (patch) => {
+    setActiveMember((prev) => {
+      if (!prev) return prev
+      const updated = { ...prev, ...patch }
+      localStorage.setItem('active_member', JSON.stringify(updated))
+      return updated
+    })
+  }
+
   const doLogout = () => {
     localStorage.clear()
     setUser(null)
@@ -77,6 +86,7 @@ export function AuthProvider({ children }) {
         login: doLogin,
         logout: doLogout,
         selectMembership,
+        updateActiveMember,
       }}
     >
       {children}

@@ -44,14 +44,14 @@ function Login() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Email</label>
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Email or Phone Number</label>
             <input
-              type="email"
+              type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               className="w-full mt-1 px-4 py-3 border border-gray-200 rounded-lg outline-none focus:border-[#e8a021] transition"
-              placeholder="you@school.edu.gh"
+              placeholder="you@school.edu.gh or 0244558389"
             />
           </div>
 

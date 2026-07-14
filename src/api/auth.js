@@ -1,7 +1,7 @@
 import api from './axios'
 
-export async function login(email, password) {
-  const response = await api.post('/auth/token/', { email, password })
+export async function login(identifier, password) {
+  const response = await api.post('/auth/token/', { identifier, password })
   return response.data
 }
 
@@ -10,34 +10,35 @@ export async function getMyMemberships() {
   return response.data
 }
 
-export async function registerStep1(payload) {
-  const response = await api.post('/auth/register/step1/', payload)
+export async function markTourSeen(memberId) {
+  const response = await api.post(`/schools/my-memberships/${memberId}/mark-tour-seen/`)
   return response.data
 }
 
-export async function sendInitialOtp(phoneNumber) {
-  const response = await api.post('/auth/register/send-otp/', {
+export async function startRegistration(payload) {
+  const response = await api.post('/auth/register/start/', payload)
+  return response.data
+}
+
+export async function resendPendingOtp(phoneNumber) {
+  const response = await api.post('/auth/register/resend-otp/', {
     phone_number: phoneNumber,
   })
   return response.data
 }
 
-export async function registerSchool(payload) {
-  const response = await api.post('/auth/register/school/', payload)
-  return response.data
-}
-
-export async function verifyOtp(phoneNumber, otpCode) {
-  const response = await api.post('/auth/verify/otp/', {
+export async function verifyAndCreate(phoneNumber, otpCode) {
+  const response = await api.post('/auth/register/verify/', {
     phone_number: phoneNumber,
     otp_code: otpCode,
   })
   return response.data
 }
 
-export async function resendOtp(phoneNumber) {
-  const response = await api.post('/auth/verify/otp/resend/', {
-    phone_number: phoneNumber,
+export async function checkAvailability(field, value) {
+  const response = await api.post('/auth/register/check-availability/', {
+    field,
+    value,
   })
   return response.data
 }
