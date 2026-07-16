@@ -3,7 +3,10 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import PortalHeader from '../../components/layout/PortalHeader'
 import { getSchoolClassrooms } from '../../api/academics'
-import { enrolStudent } from '../../api/students'
+import { enrolStudent, getAllStudents, uploadStudentFile, uploadGuardianFile } from '../../api/students'
+import PhotoCapture from '../../components/PhotoCapture'
+import FingerprintUpload from '../../components/FingerprintUpload'
+import GuardianSection from '../../components/GuardianSection'
 
 const GENDER_CHOICES = [
   { value: 'male', label: 'Male' },
@@ -34,51 +37,11 @@ const BOARDING_CHOICES = [
   { value: 'weekly', label: 'Weekly Boarder' },
 ]
 
-const GHANA_REGIONS = [
-  { value: '', label: 'Select...' },
-  { value: 'greater_accra', label: 'Greater Accra' },
-  { value: 'ashanti', label: 'Ashanti' },
-  { value: 'western', label: 'Western' },
-  { value: 'western_north', label: 'Western North' },
-  { value: 'central', label: 'Central' },
-  { value: 'eastern', label: 'Eastern' },
-  { value: 'volta', label: 'Volta' },
-  { value: 'oti', label: 'Oti' },
-  { value: 'northern', label: 'Northern' },
-  { value: 'savannah', label: 'Savannah' },
-  { value: 'north_east', label: 'North East' },
-  { value: 'upper_east', label: 'Upper East' },
-  { value: 'upper_west', label: 'Upper West' },
-  { value: 'bono', label: 'Bono' },
-  { value: 'bono_east', label: 'Bono East' },
-  { value: 'ahafo', label: 'Ahafo' },
-  { value: 'other', label: 'Other / Outside Ghana' },
-]
-
-const GUARDIAN_RELATIONSHIP_CHOICES = [
-  { value: '', label: 'Select...' },
-  { value: 'father', label: 'Father' },
-  { value: 'mother', label: 'Mother' },
-  { value: 'uncle', label: 'Uncle' },
-  { value: 'aunt', label: 'Aunt' },
-  { value: 'grandfather', label: 'Grandfather' },
-  { value: 'grandmother', label: 'Grandmother' },
-  { value: 'brother', label: 'Brother' },
-  { value: 'sister', label: 'Sister' },
-  { value: 'guardian', label: 'Legal Guardian' },
-  { value: 'other', label: 'Other' },
-]
-
-const EC_RELATIONSHIP_CHOICES = [
-  ...GUARDIAN_RELATIONSHIP_CHOICES,
-  { value: 'family_friend', label: 'Family Friend' },
-]
-
 const steps = [
   { num: 1, label: 'Personal' },
-  { num: 2, label: 'Academic' },
-  { num: 3, label: 'Contact' },
-  { num: 4, label: 'Guardian' },
+  { num: 2, label: 'Photo & Fingerprint' },
+  { num: 3, label: 'Guardian' },
+  { num: 4, label: 'Academic' },
   { num: 5, label: 'Health' },
   { num: 6, label: 'Review' },
 ]
@@ -98,14 +61,44 @@ function Field({ label, required, error, children }) {
 const inputClass = "px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-gold"
 const inputErrorClass = "px-3 py-2.5 border border-red-300 rounded-lg text-sm outline-none focus:border-red-400"
 
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+const emptyPerson = () => ({
+  title: '', first_name: '', last_name: '', relationship: '',
+  phone: '', whatsapp_number: '', secondary_phone: '',
+  photo: null, fingerprint_data: null,
+  residential_address: '', digital_address: '',
+  occupation_name: '', ghana_card_number: '',
+  ghana_card_front: null, ghana_card_back: null,
+  can_pickup: true, is_fee_payer: false,
+})
+
 function EnrolWizard() {
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
+  const [transitioning, setTransitioning] = useState(false)
   const [errors, setErrors] = useState({})
   const [phase, setPhase] = useState('form') // 'form' | 'processing' | 'success' | 'error'
-  const [processStep, setProcessStep] = useState(0)
+  const [processLabels, setProcessLabels] = useState([])
+  const [processIndex, setProcessIndex] = useState(0)
   const [submitError, setSubmitError] = useState('')
   const [successData, setSuccessData] = useState(null)
+  const [confirmSkipPhoto, setConfirmSkipPhoto] = useState(false)
+  const stepperRef = useRef(null)
+  const [canScrollStepperLeft, setCanScrollStepperLeft] = useState(false)
+  const [canScrollStepperRight, setCanScrollStepperRight] = useState(false)
+
+  const checkStepperScroll = () => {
+    const el = stepperRef.current
+    if (!el) return
+    setCanScrollStepperLeft(el.scrollLeft > 4)
+    setCanScrollStepperRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+  }
+
+  const scrollStepper = (direction) => {
+    const el = stepperRef.current
+    if (!el) return
+    el.scrollBy({ left: direction === 'left' ? -160 : 160, behavior: 'smooth' })
+  }
 
   const { data: classroomsData } = useQuery({
     queryKey: ['school-classrooms'],
@@ -114,33 +107,76 @@ function EnrolWizard() {
   const classrooms = classroomsData?.data?.classrooms || []
 
   const [form, setForm] = useState({
-    // Step 1
+    // Step 1 — Personal
     first_name: '', middle_name: '', last_name: '', date_of_birth: '',
-    gender: '', place_of_birth: '', home_town: '', nationality: 'Ghanaian',
+    gender: '', ghana_card_number: '', birth_certificate_number: '',
+    place_of_birth: '', home_town: '', nationality: 'Ghanaian',
     mother_tongue: '', religion: '',
-    // Step 2
+    // Step 2 — Photo & Fingerprint
+    photo: null, fingerprint_data: null,
+    // Step 3 — Guardians
+    parents: [emptyPerson()],
+    guardians: [],
+    // Step 4 — Academic
     enrollment_date: new Date().toISOString().split('T')[0], current_class: '',
     previous_school: '', expected_graduation_year: '', boarding_status: 'day',
     house_dormitory: '', bus_route: '', locker_number: '',
-    // Step 3
-    residential_address: '', city: '', region: '',
-    birth_certificate_number: '', nhis_number: '',
-    // Step 4
-    g1_first_name: '', g1_last_name: '', g1_relationship: '', g1_phone: '',
-    g1_whatsapp: '', g1_email: '', g1_occupation: '', g1_employer: '',
-    g1_address: '', g1_is_fee_payer: false,
-    g2_first_name: '', g2_last_name: '', g2_relationship: '', g2_phone: '',
-    g2_whatsapp: '', g2_email: '', g2_occupation: '', g2_is_fee_payer: false,
-    // Step 5
+    siblings: [], // [{id, full_name}]
+    // Step 5 — Health
     blood_group: 'unknown', known_allergies: '', medical_notes: '',
-    disability_status: false, disability_description: '',
+    disability_status: false, disability_description: '', nhis_number: '',
     talents_skills: '', additional_notes: '',
+    emergency_choice: '', // 'parent-0', 'guardian-1', or 'other'
     emergency_full_name: '', emergency_relationship: '', emergency_phone: '',
-    emergency_whatsapp: '',
   })
+  useEffect(() => {
+    checkStepperScroll()
+    const el = stepperRef.current
+    if (!el) return
+    el.addEventListener('scroll', checkStepperScroll)
+    window.addEventListener('resize', checkStepperScroll)
+    return () => {
+      el.removeEventListener('scroll', checkStepperScroll)
+      window.removeEventListener('resize', checkStepperScroll)
+    }
+  }, [step])
 
   const update = (field, value) => setForm((prev) => ({ ...prev, [field]: value }))
 
+  // ── Sibling search (Academic step) ──────────────────────────────────
+  const [siblingQuery, setSiblingQuery] = useState('')
+  const [siblingResults, setSiblingResults] = useState([])
+  const siblingDebounceRef = useRef(null)
+
+  const handleSiblingSearch = (text) => {
+    setSiblingQuery(text)
+    if (siblingDebounceRef.current) clearTimeout(siblingDebounceRef.current)
+    if (text.trim().length < 2) {
+      setSiblingResults([])
+      return
+    }
+    siblingDebounceRef.current = setTimeout(async () => {
+      try {
+        const res = await getAllStudents({ search: text.trim() })
+        setSiblingResults(res.data?.students || [])
+      } catch {
+        setSiblingResults([])
+      }
+    }, 300)
+  }
+
+  const addSibling = (student) => {
+    if (form.siblings.some((s) => s.id === student.id)) return
+    update('siblings', [...form.siblings, { id: student.id, full_name: student.full_name }])
+    setSiblingQuery('')
+    setSiblingResults([])
+  }
+
+  const removeSibling = (id) => {
+    update('siblings', form.siblings.filter((s) => s.id !== id))
+  }
+
+  // ── Validation ───────────────────────────────────────────────────────
   const validateStep = (s) => {
     const errs = {}
     if (s === 1) {
@@ -149,70 +185,96 @@ function EnrolWizard() {
       if (!form.date_of_birth) errs.date_of_birth = 'Date of birth is required.'
       if (!form.gender) errs.gender = 'Gender is required.'
     }
-    if (s === 2) {
-      if (!form.enrollment_date) errs.enrollment_date = 'Enrollment date is required.'
+    if (s === 3) {
+      const primary = form.parents[0]
+      if (!primary?.first_name?.trim()) errs.first_name = 'Required.'
+      if (!primary?.last_name?.trim()) errs.last_name = 'Required.'
+      if (!primary?.phone?.trim()) errs.phone = 'Required.'
+      if (!primary?.relationship) errs.relationship = 'Required.'
     }
     if (s === 4) {
-      if (!form.g1_first_name.trim()) errs.g1_first_name = 'Required.'
-      if (!form.g1_last_name.trim()) errs.g1_last_name = 'Required.'
-      if (!form.g1_phone.trim()) errs.g1_phone = 'Required.'
-      if (!form.g1_relationship) errs.g1_relationship = 'Required.'
-    }
-    if (s === 5) {
-      if (!form.emergency_full_name.trim()) errs.emergency_full_name = 'Required.'
-      if (!form.emergency_phone.trim()) errs.emergency_phone = 'Required.'
+      if (!form.enrollment_date) errs.enrollment_date = 'Enrollment date is required.'
     }
     setErrors(errs)
     return Object.keys(errs).length === 0
   }
 
-  const goNext = () => {
-    if (validateStep(step)) setStep((s) => Math.min(s + 1, 6))
+  const changeStep = (nextStep) => {
+    setTransitioning(true)
+    setTimeout(() => {
+      setStep(nextStep)
+      setTransitioning(false)
+    }, 220)
   }
-  const goBack = () => setStep((s) => Math.max(s - 1, 1))
 
-  const handleSubmit = async () => {
+  const goNext = () => {
+    if (step === 2 && !form.photo && !confirmSkipPhoto) {
+      setConfirmSkipPhoto(true)
+      return
+    }
+    if (validateStep(step)) {
+      setConfirmSkipPhoto(false)
+      changeStep(Math.min(step + 1, 6))
+    }
+  }
+  const goBack = () => changeStep(Math.max(step - 1, 1))
+
+  // ── Submission (two-phase: JSON create, then sequential file uploads) ─
+const handleSubmit = async () => {
     if (phase !== 'form') return
     setSubmitError('')
 
-    const guardians = [{
-      first_name: form.g1_first_name,
-      last_name: form.g1_last_name,
-      relationship: form.g1_relationship,
-      occupation: form.g1_occupation,
-      employer: form.g1_employer,
-      nationality: 'Ghanaian',
-      phone: form.g1_phone,
-      whatsapp_number: form.g1_whatsapp,
-      email: form.g1_email,
-      residential_address: form.g1_address,
-      is_fee_payer: form.g1_is_fee_payer,
-      is_primary: true,
-    }]
+    const allGuardians = [
+      ...form.parents.map((p, i) => ({ ...p, __isPrimary: i === 0 })),
+      ...form.guardians.map((g) => ({ ...g, __isPrimary: false })),
+    ].filter((g) => g.first_name?.trim() && g.phone?.trim())
 
-    if (form.g2_first_name.trim() && form.g2_phone.trim()) {
-      guardians.push({
-        first_name: form.g2_first_name,
-        last_name: form.g2_last_name,
-        relationship: form.g2_relationship || 'other',
-        occupation: form.g2_occupation,
-        phone: form.g2_phone,
-        whatsapp_number: form.g2_whatsapp,
-        email: form.g2_email,
-        is_fee_payer: form.g2_is_fee_payer,
-        is_primary: false,
-      })
+    const guardiansPayload = allGuardians.map((g) => ({
+      title: g.title || '',
+      first_name: g.first_name,
+      last_name: g.last_name,
+      relationship: g.relationship,
+      occupation_name: g.occupation_name || '',
+      nationality: 'Ghanaian',
+      phone: g.phone,
+      whatsapp_number: g.whatsapp_number || '',
+      secondary_phone: g.secondary_phone || '',
+      residential_address: g.residential_address || '',
+      digital_address: g.digital_address || '',
+      ghana_card_number: g.ghana_card_number || '',
+      can_pickup: g.can_pickup ?? true,
+      is_fee_payer: g.is_fee_payer || false,
+      is_primary: g.__isPrimary,
+    }))
+
+    const incompleteGuardian = allGuardians.find((g) => !g.relationship)
+    if (incompleteGuardian) {
+      setSubmitError(`Please select a relationship for ${incompleteGuardian.first_name} before submitting.`)
+      return
     }
 
-    const emergency_contacts = []
-    if (form.emergency_full_name.trim() && form.emergency_phone.trim()) {
-      emergency_contacts.push({
-        full_name: form.emergency_full_name,
-        relationship: form.emergency_relationship || 'other',
-        phone: form.emergency_phone,
-        whatsapp_number: form.emergency_whatsapp,
-        is_primary: true,
-      })
+    let emergency_contacts = []
+    if (form.emergency_choice === 'other') {
+      if (form.emergency_full_name.trim() && form.emergency_phone.trim()) {
+        emergency_contacts = [{
+          full_name: form.emergency_full_name,
+          relationship: form.emergency_relationship || 'other',
+          phone: form.emergency_phone,
+          whatsapp_number: '',
+          is_primary: true,
+        }]
+      }
+    } else if (form.emergency_choice) {
+      const chosen = allGuardians[Number(form.emergency_choice.split('-')[1])]
+      if (chosen) {
+        emergency_contacts = [{
+          full_name: `${chosen.first_name} ${chosen.last_name}`,
+          relationship: chosen.relationship || 'other',
+          phone: chosen.phone,
+          whatsapp_number: chosen.whatsapp_number || '',
+          is_primary: true,
+        }]
+      }
     }
 
     const payload = {
@@ -221,6 +283,8 @@ function EnrolWizard() {
       last_name: form.last_name,
       date_of_birth: form.date_of_birth,
       gender: form.gender,
+      ghana_card_number: form.ghana_card_number,
+      birth_certificate_number: form.birth_certificate_number,
       place_of_birth: form.place_of_birth,
       home_town: form.home_town,
       nationality: form.nationality,
@@ -234,104 +298,120 @@ function EnrolWizard() {
       house_dormitory: form.house_dormitory,
       bus_route: form.bus_route,
       locker_number: form.locker_number,
-      residential_address: form.residential_address,
-      city: form.city,
-      region: form.region,
-      birth_certificate_number: form.birth_certificate_number,
-      nhis_number: form.nhis_number,
+      sibling_ids: form.siblings.map((s) => s.id),
       blood_group: form.blood_group,
       known_allergies: form.known_allergies,
       medical_notes: form.medical_notes,
       disability_status: form.disability_status,
       disability_description: form.disability_description,
+      nhis_number: form.nhis_number,
       talents_skills: form.talents_skills,
       additional_notes: form.additional_notes,
-      guardians,
+      guardians: guardiansPayload,
       emergency_contacts,
     }
 
-    setPhase('processing')
-    setProcessStep(0)
-    apiDoneRef.current = false
-    apiResultRef.current = null
+    // Precompute the full checklist of labels up front — the "pre-creation"
+    // labels animate on a timer while the real request is in flight; the
+    // upload labels are then walked through one at a time as each real
+    // upload actually happens.
+    const name = form.first_name || 'the student'
+    const className = selectedClassroom?.full_name
 
-    enrolStudent(payload)
-      .then((res) => {
-        apiResultRef.current = { success: true, data: res.data || res }
-        apiDoneRef.current = true
-      })
-      .catch((err) => {
-        const msg = err.response?.data?.message
-          || JSON.stringify(err.response?.data?.errors || err.response?.data)
-          || 'Failed to enrol student. Please check the details and try again.'
-        apiResultRef.current = { success: false, message: msg }
-        apiDoneRef.current = true
-      })
+    const preLabels = [
+      `Assembling ${name}'s data...`,
+      `Creating student profile...`,
+      `Registering guardians...`,
+      className ? `Placing ${name} into ${className}...` : `Finalizing academic record...`,
+    ]
+
+    const uploadTasks = []
+    if (form.photo) uploadTasks.push({ label: `Uploading ${name}'s photo...`, kind: 'student', field: 'photo', file: form.photo })
+    if (form.fingerprint_data) uploadTasks.push({ label: `Uploading ${name}'s fingerprint scan...`, kind: 'student', field: 'fingerprint_data', file: form.fingerprint_data })
+    allGuardians.forEach((g) => {
+      if (g.photo) uploadTasks.push({ label: `Uploading photo for ${g.first_name}...`, kind: 'guardian', field: 'photo', file: g.photo, guardianRef: g })
+      if (g.fingerprint_data) uploadTasks.push({ label: `Uploading fingerprint for ${g.first_name}...`, kind: 'guardian', field: 'fingerprint_data', file: g.fingerprint_data, guardianRef: g })
+      if (g.ghana_card_front) uploadTasks.push({ label: `Uploading Ghana Card (front) for ${g.first_name}...`, kind: 'guardian', field: 'ghana_card_front', file: g.ghana_card_front, guardianRef: g })
+      if (g.ghana_card_back) uploadTasks.push({ label: `Uploading Ghana Card (back) for ${g.first_name}...`, kind: 'guardian', field: 'ghana_card_back', file: g.ghana_card_back, guardianRef: g })
+    })
+
+    const allLabels = [...preLabels, ...uploadTasks.map((t) => t.label), 'Finalizing enrollment...']
+    setProcessLabels(allLabels)
+    setProcessIndex(0)
+    setPhase('processing')
+
+    try {
+      // Phase A — animate through the pre-creation labels on a timer while
+      // the real create request is in flight; hold on the last one if the
+      // request takes longer than the animation.
+      const enrolPromise = enrolStudent(payload)
+      let i = 0
+      const preInterval = setInterval(() => {
+        i += 1
+        if (i >= preLabels.length) {
+          clearInterval(preInterval)
+          return
+        }
+        setProcessIndex(i)
+      }, 900)
+
+      const res = await enrolPromise
+      clearInterval(preInterval)
+      setProcessIndex(preLabels.length - 1)
+      await wait(400)
+
+      const student = res.data || res
+      const studentId = student.id
+      const createdGuardians = student.guardians || []
+
+      // Phase B — walk through real file uploads, one label at a time,
+      // with a minimum visible duration so fast uploads don't flicker past.
+      for (let t = 0; t < uploadTasks.length; t += 1) {
+        setProcessIndex(preLabels.length + t)
+        const task = uploadTasks[t]
+        const start = Date.now()
+        try {
+          if (task.kind === 'student') {
+            await uploadStudentFile(studentId, task.field, task.file)
+          } else {
+            const idx = allGuardians.indexOf(task.guardianRef)
+            const created = createdGuardians[idx]
+            const guardianId = created?.guardian?.id
+            if (guardianId) {
+              await uploadGuardianFile(guardianId, task.field, task.file)
+            }
+          }
+        } catch {
+          // A single file failing shouldn't derail an otherwise-successful
+          // enrolment — the student and guardian records already exist.
+        }
+        const elapsed = Date.now() - start
+        if (elapsed < 500) await wait(500 - elapsed)
+      }
+
+      // Phase C — finalize
+      setProcessIndex(allLabels.length - 1)
+      await wait(700)
+
+      setSuccessData(student)
+      setPhase('success')
+    } catch (err) {
+      const msg = err.response?.data?.message
+        || JSON.stringify(err.response?.data?.errors || err.response?.data)
+        || 'Failed to enrol student. Please check the details and try again.'
+      setSubmitError(msg)
+      setPhase('error')
+    }
   }
 
   const selectedClassroom = classrooms.find((c) => String(c.id) === String(form.current_class))
-
-  const processSteps = [
-    'Creating student profile...',
-    'Linking guardian & emergency contacts...',
-    ...(form.current_class ? ['Recording class placement...'] : []),
-    'Sending SMS confirmation...',
-  ]
-
-  const apiDoneRef = useRef(false)
-  const apiResultRef = useRef(null)
-
-  useEffect(() => {
-    if (phase !== 'processing') return
-
-    const totalDurationMs = 10000
-    const stepCount = processSteps.length - 1 // number of transitions needed
-    const stepDuration = totalDurationMs / stepCount
-
-    const interval = setInterval(() => {
-      setProcessStep((prev) => {
-        const next = prev + 1
-        if (next >= processSteps.length - 1) {
-          clearInterval(interval)
-          return processSteps.length - 1
-        }
-        return next
-      })
-    }, stepDuration)
-
-    return () => clearInterval(interval)
-  }, [phase])
-
-  useEffect(() => {
-    if (phase !== 'processing') return
-    if (processStep < processSteps.length - 1) return
-
-    // We've reached the last visual step — wait for the real API result
-    const checkDone = setInterval(() => {
-      if (apiDoneRef.current) {
-        clearInterval(checkDone)
-        const result = apiResultRef.current
-        setTimeout(() => {
-          if (result.success) {
-            setSuccessData(result.data)
-            setPhase('success')
-          } else {
-            setSubmitError(result.message)
-            setPhase('error')
-          }
-        }, 350)
-      }
-    }, 150)
-
-    return () => clearInterval(checkDone)
-  }, [phase, processStep])
+  const allGuardiansForReview = [...form.parents, ...form.guardians].filter((g) => g.first_name?.trim())
 
   return (
     <div className="min-h-screen">
       <PortalHeader />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-8">
-        {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-gray-400 mb-5">
           <Link to="/admin" className="hover:text-navy transition">Dashboard</Link>
           <span className="text-gray-300">›</span>
@@ -342,18 +422,34 @@ function EnrolWizard() {
 
         <h1 className="font-serif text-2xl sm:text-3xl font-bold text-navy mb-6">Enrol New Student</h1>
 
-        {/* Stepper */}
-        <div className="flex items-center gap-1 mb-6 overflow-x-auto no-scrollbar">
+        <div className="relative mb-6">
+          {canScrollStepperLeft && (
+            <button
+              onClick={() => scrollStepper('left')}
+              className="absolute left-0 top-0 bottom-0 z-10 w-10 flex items-center justify-center bg-gradient-to-r from-gray-100 via-gray-100 to-transparent"
+            >
+              <svg className="w-4 h-4 text-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+          {canScrollStepperRight && (
+            <button
+              onClick={() => scrollStepper('right')}
+              className="absolute right-0 top-0 bottom-0 z-10 w-10 flex items-center justify-center bg-gradient-to-l from-gray-100 via-gray-100 to-transparent"
+            >
+              <svg className="w-4 h-4 text-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+          <div ref={stepperRef} className="flex items-center gap-1 overflow-x-auto no-scrollbar scroll-smooth">
           {steps.map((s, i) => (
             <div key={s.num} className="flex items-center flex-shrink-0">
               <div className="flex flex-col items-center gap-1.5">
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition ${
-                    step === s.num
-                      ? 'bg-navy text-white'
-                      : step > s.num
-                      ? 'bg-gold text-navy'
-                      : 'bg-gray-100 text-gray-400'
+                    step === s.num ? 'bg-navy text-white' : step > s.num ? 'bg-gold text-navy' : 'bg-gray-100 text-gray-400'
                   }`}
                 >
                   {step > s.num ? (
@@ -362,7 +458,7 @@ function EnrolWizard() {
                     </svg>
                   ) : s.num}
                 </div>
-                <span className={`text-[10px] font-semibold ${step === s.num ? 'text-navy' : 'text-gray-400'}`}>
+                <span className={`text-[10px] font-semibold text-center ${step === s.num ? 'text-navy' : 'text-gray-400'}`}>
                   {s.label}
                 </span>
               </div>
@@ -371,11 +467,20 @@ function EnrolWizard() {
               )}
             </div>
           ))}
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl shadow-lg p-5 sm:p-8">
 
-          {/* STEP 1 — Personal Information */}
+          <div
+            className="transition-all duration-200 ease-out"
+            style={{
+              opacity: transitioning ? 0 : 1,
+              transform: transitioning ? 'translateY(-8px)' : 'translateY(0)',
+            }}
+          >
+
+          {/* STEP 1 — Personal */}
           {step === 1 && (
             <div className="flex flex-col gap-5">
               <div className="text-sm font-bold text-navy">Personal Information</div>
@@ -386,11 +491,11 @@ function EnrolWizard() {
                 <Field label="Middle Name">
                   <input className={inputClass} value={form.middle_name} onChange={(e) => update('middle_name', e.target.value)} />
                 </Field>
-                <Field label="Last Name" required error={errors.last_name}>
+                <Field label="Last Name (Surname)" required error={errors.last_name}>
                   <input className={errors.last_name ? inputErrorClass : inputClass} value={form.last_name} onChange={(e) => update('last_name', e.target.value)} />
                 </Field>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Date of Birth" required error={errors.date_of_birth}>
                   <input type="date" className={errors.date_of_birth ? inputErrorClass : inputClass} value={form.date_of_birth} onChange={(e) => update('date_of_birth', e.target.value)} />
                 </Field>
@@ -400,10 +505,16 @@ function EnrolWizard() {
                     {GENDER_CHOICES.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
                   </select>
                 </Field>
-                <Field label="Religion">
-                  <select className={inputClass} value={form.religion} onChange={(e) => update('religion', e.target.value)}>
-                    {RELIGION_CHOICES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                  </select>
+              </div>
+
+              <div className="pt-2 border-t border-gray-100" />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Ghana Card Number">
+                  <input className={inputClass} placeholder="e.g. GHA-123456789-0" value={form.ghana_card_number} onChange={(e) => update('ghana_card_number', e.target.value)} />
+                </Field>
+                <Field label="Birth Certificate Number">
+                  <input className={inputClass} value={form.birth_certificate_number} onChange={(e) => update('birth_certificate_number', e.target.value)} />
                 </Field>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -414,19 +525,74 @@ function EnrolWizard() {
                   <input className={inputClass} value={form.home_town} onChange={(e) => update('home_town', e.target.value)} />
                 </Field>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Field label="Nationality">
                   <input className={inputClass} value={form.nationality} onChange={(e) => update('nationality', e.target.value)} />
                 </Field>
                 <Field label="Mother Tongue">
                   <input className={inputClass} value={form.mother_tongue} onChange={(e) => update('mother_tongue', e.target.value)} />
                 </Field>
+                <Field label="Religion">
+                  <select className={inputClass} value={form.religion} onChange={(e) => update('religion', e.target.value)}>
+                    {RELIGION_CHOICES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  </select>
+                </Field>
               </div>
             </div>
           )}
 
-          {/* STEP 2 — Academic Placement */}
+          {/* STEP 2 — Photo & Fingerprint */}
           {step === 2 && (
+            <div className="flex flex-col gap-6">
+              <div>
+                <div className="text-sm font-bold text-navy mb-1">Student Photo</div>
+                <div className="text-xs text-gray-400 mb-4">Take a photo now, or upload one if you already have it.</div>
+                <PhotoCapture value={form.photo} onChange={(file) => { update('photo', file); setConfirmSkipPhoto(false) }} allowCamera />
+              </div>
+              <div className="pt-4 border-t border-gray-100">
+                <div className="text-sm font-bold text-navy mb-1">Fingerprint Scan</div>
+                <div className="text-xs text-gray-400 mb-4">
+                  Optional for now — upload a scan if you have compatible hardware. Live scanner capture is coming once biometric hardware is set up.
+                </div>
+                <FingerprintUpload value={form.fingerprint_data} onChange={(file) => update('fingerprint_data', file)} />
+              </div>
+
+              {confirmSkipPhoto && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col gap-3">
+                  <div className="text-sm text-amber-800 font-semibold">No photo added — are you sure you want to skip this step?</div>
+                  <div className="text-xs text-amber-700">You can add a photo later from the student's profile.</div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => { setConfirmSkipPhoto(false); setStep(3) }}
+                      className="text-xs font-bold bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition"
+                    >
+                      Skip Anyway
+                    </button>
+                    <button
+                      onClick={() => setConfirmSkipPhoto(false)}
+                      className="text-xs font-semibold text-amber-700 px-4 py-2 rounded-lg hover:bg-amber-100 transition"
+                    >
+                      Go Back
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* STEP 3 — Guardian(s) */}
+          {step === 3 && (
+            <GuardianSection
+              parents={form.parents}
+              guardians={form.guardians}
+              onChangeParents={(next) => update('parents', next)}
+              onChangeGuardians={(next) => update('guardians', next)}
+              errors={errors}
+            />
+          )}
+
+          {/* STEP 4 — Academic */}
+          {step === 4 && (
             <div className="flex flex-col gap-5">
               <div className="text-sm font-bold text-navy">Academic Placement</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -440,6 +606,42 @@ function EnrolWizard() {
                   </select>
                 </Field>
               </div>
+
+              <Field label="Sibling(s) already enrolled">
+                <div className="relative">
+                  <input
+                    className={inputClass + " w-full"}
+                    placeholder="Search by name..."
+                    value={siblingQuery}
+                    onChange={(e) => handleSiblingSearch(e.target.value)}
+                  />
+                  {siblingResults.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-48 overflow-y-auto">
+                      {siblingResults.map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => addSibling(s)}
+                          className="w-full text-left px-3 py-2 text-sm text-navy hover:bg-gray-50 transition"
+                        >
+                          {s.full_name} <span className="text-gray-400 text-xs">({s.student_id})</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {form.siblings.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {form.siblings.map((s) => (
+                      <span key={s.id} className="flex items-center gap-1.5 text-xs font-semibold bg-gold/10 text-amber-700 px-2.5 py-1 rounded-full">
+                        {s.full_name}
+                        <button type="button" onClick={() => removeSibling(s.id)} className="hover:text-red-600">×</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </Field>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Previous School">
                   <input className={inputClass} value={form.previous_school} onChange={(e) => update('previous_school', e.target.value)} />
@@ -459,177 +661,81 @@ function EnrolWizard() {
                 </Field>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Bus Route">
+                <Field label="Bus Route (optional)">
                   <input className={inputClass} value={form.bus_route} onChange={(e) => update('bus_route', e.target.value)} />
                 </Field>
-                <Field label="Locker Number">
+                <Field label="Locker Number (optional)">
                   <input className={inputClass} value={form.locker_number} onChange={(e) => update('locker_number', e.target.value)} />
                 </Field>
               </div>
             </div>
           )}
 
-          {/* STEP 3 — Contact & Documents */}
-          {step === 3 && (
+          {/* STEP 5 — Health */}
+          {step === 5 && (
             <div className="flex flex-col gap-5">
-              <div className="text-sm font-bold text-navy">Contact &amp; Documents</div>
-              <Field label="Residential Address">
-                <textarea rows={2} className={inputClass} value={form.residential_address} onChange={(e) => update('residential_address', e.target.value)} />
-              </Field>
+              <div className="text-sm font-bold text-navy">Health Information</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="City">
-                  <input className={inputClass} value={form.city} onChange={(e) => update('city', e.target.value)} />
-                </Field>
-                <Field label="Region">
-                  <select className={inputClass} value={form.region} onChange={(e) => update('region', e.target.value)}>
-                    {GHANA_REGIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                <Field label="Blood Group">
+                  <select className={inputClass} value={form.blood_group} onChange={(e) => update('blood_group', e.target.value)}>
+                    {BLOOD_GROUP_CHOICES.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
                   </select>
-                </Field>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Birth Certificate Number">
-                  <input className={inputClass} value={form.birth_certificate_number} onChange={(e) => update('birth_certificate_number', e.target.value)} />
                 </Field>
                 <Field label="NHIS Card Number">
                   <input className={inputClass} value={form.nhis_number} onChange={(e) => update('nhis_number', e.target.value)} />
                 </Field>
               </div>
-            </div>
-          )}
-
-          {/* STEP 4 — Guardian Information */}
-          {step === 4 && (
-            <div className="flex flex-col gap-6">
-              <div>
-                <div className="text-sm font-bold text-navy mb-4">Primary Guardian</div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                  <Field label="First Name" required error={errors.g1_first_name}>
-                    <input className={errors.g1_first_name ? inputErrorClass : inputClass} value={form.g1_first_name} onChange={(e) => update('g1_first_name', e.target.value)} />
-                  </Field>
-                  <Field label="Last Name" required error={errors.g1_last_name}>
-                    <input className={errors.g1_last_name ? inputErrorClass : inputClass} value={form.g1_last_name} onChange={(e) => update('g1_last_name', e.target.value)} />
-                  </Field>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                  <Field label="Relationship" required error={errors.g1_relationship}>
-                    <select className={errors.g1_relationship ? inputErrorClass : inputClass} value={form.g1_relationship} onChange={(e) => update('g1_relationship', e.target.value)}>
-                      {GUARDIAN_RELATIONSHIP_CHOICES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                    </select>
-                  </Field>
-                  <Field label="Phone" required error={errors.g1_phone}>
-                    <input className={errors.g1_phone ? inputErrorClass : inputClass} value={form.g1_phone} onChange={(e) => update('g1_phone', e.target.value)} />
-                  </Field>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                  <Field label="WhatsApp Number">
-                    <input className={inputClass} value={form.g1_whatsapp} onChange={(e) => update('g1_whatsapp', e.target.value)} />
-                  </Field>
-                  <Field label="Email">
-                    <input type="email" className={inputClass} value={form.g1_email} onChange={(e) => update('g1_email', e.target.value)} />
-                  </Field>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                  <Field label="Occupation">
-                    <input className={inputClass} value={form.g1_occupation} onChange={(e) => update('g1_occupation', e.target.value)} />
-                  </Field>
-                  <Field label="Employer">
-                    <input className={inputClass} value={form.g1_employer} onChange={(e) => update('g1_employer', e.target.value)} />
-                  </Field>
-                </div>
-                <Field label="Residential Address">
-                  <textarea rows={2} className={inputClass} value={form.g1_address} onChange={(e) => update('g1_address', e.target.value)} />
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={form.disability_status} onChange={(e) => update('disability_status', e.target.checked)} className="w-4 h-4 accent-navy" />
+                <span className="text-sm text-gray-600">Has a disability</span>
+              </label>
+              {form.disability_status && (
+                <Field label="Disability Description">
+                  <textarea rows={2} className={inputClass} value={form.disability_description} onChange={(e) => update('disability_description', e.target.value)} />
                 </Field>
-                <label className="flex items-center gap-2 mt-3">
-                  <input type="checkbox" checked={form.g1_is_fee_payer} onChange={(e) => update('g1_is_fee_payer', e.target.checked)} className="w-4 h-4 accent-navy" />
-                  <span className="text-sm text-gray-600">Responsible for paying school fees</span>
-                </label>
-              </div>
+              )}
+              <Field label="Known Allergies">
+                <textarea rows={2} className={inputClass} value={form.known_allergies} onChange={(e) => update('known_allergies', e.target.value)} />
+              </Field>
+              <Field label="Medical Notes">
+                <textarea rows={2} className={inputClass} value={form.medical_notes} onChange={(e) => update('medical_notes', e.target.value)} />
+              </Field>
+              <Field label="Talents & Skills">
+                <textarea rows={2} className={inputClass} value={form.talents_skills} onChange={(e) => update('talents_skills', e.target.value)} />
+              </Field>
+              <Field label="Additional Notes">
+                <textarea rows={2} className={inputClass} value={form.additional_notes} onChange={(e) => update('additional_notes', e.target.value)} />
+              </Field>
 
               <div className="pt-4 border-t border-gray-100">
-                <div className="text-sm font-bold text-navy mb-1">Second Guardian <span className="text-gray-400 font-normal">(optional)</span></div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 mt-4">
-                  <Field label="First Name">
-                    <input className={inputClass} value={form.g2_first_name} onChange={(e) => update('g2_first_name', e.target.value)} />
-                  </Field>
-                  <Field label="Last Name">
-                    <input className={inputClass} value={form.g2_last_name} onChange={(e) => update('g2_last_name', e.target.value)} />
-                  </Field>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                  <Field label="Relationship">
-                    <select className={inputClass} value={form.g2_relationship} onChange={(e) => update('g2_relationship', e.target.value)}>
-                      {GUARDIAN_RELATIONSHIP_CHOICES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                    </select>
-                  </Field>
-                  <Field label="Phone">
-                    <input className={inputClass} value={form.g2_phone} onChange={(e) => update('g2_phone', e.target.value)} />
-                  </Field>
-                </div>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" checked={form.g2_is_fee_payer} onChange={(e) => update('g2_is_fee_payer', e.target.checked)} className="w-4 h-4 accent-navy" />
-                  <span className="text-sm text-gray-600">Responsible for paying school fees</span>
-                </label>
-              </div>
-            </div>
-          )}
+                <div className="text-sm font-bold text-navy mb-3">Emergency Contact (Priority)</div>
+                <Field label="Who should be contacted first in an emergency?">
+                  <select
+                    className={inputClass}
+                    value={form.emergency_choice}
+                    onChange={(e) => update('emergency_choice', e.target.value)}
+                  >
+                    <option value="">Select...</option>
+                    {allGuardiansForReview.map((g, i) => (
+                      <option key={i} value={`g-${i}`}>{g.first_name} {g.last_name}</option>
+                    ))}
+                    <option value="other">Someone else (not listed)</option>
+                  </select>
+                </Field>
 
-          {/* STEP 5 — Health & Emergency Contact */}
-          {step === 5 && (
-            <div className="flex flex-col gap-6">
-              <div>
-                <div className="text-sm font-bold text-navy mb-4">Health Information</div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                  <Field label="Blood Group">
-                    <select className={inputClass} value={form.blood_group} onChange={(e) => update('blood_group', e.target.value)}>
-                      {BLOOD_GROUP_CHOICES.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
-                    </select>
-                  </Field>
-                  <div className="flex items-end pb-2.5">
-                    <label className="flex items-center gap-2">
-                      <input type="checkbox" checked={form.disability_status} onChange={(e) => update('disability_status', e.target.checked)} className="w-4 h-4 accent-navy" />
-                      <span className="text-sm text-gray-600">Has a disability</span>
-                    </label>
+                {form.emergency_choice === 'other' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                    <Field label="Full Name">
+                      <input className={inputClass} value={form.emergency_full_name} onChange={(e) => update('emergency_full_name', e.target.value)} />
+                    </Field>
+                    <Field label="Phone">
+                      <input className={inputClass} value={form.emergency_phone} onChange={(e) => update('emergency_phone', e.target.value)} />
+                    </Field>
+                    <Field label="Relationship">
+                      <input className={inputClass} value={form.emergency_relationship} onChange={(e) => update('emergency_relationship', e.target.value)} />
+                    </Field>
                   </div>
-                </div>
-                {form.disability_status && (
-                  <Field label="Disability Description">
-                    <textarea rows={2} className={inputClass} value={form.disability_description} onChange={(e) => update('disability_description', e.target.value)} />
-                  </Field>
                 )}
-                <Field label="Known Allergies">
-                  <textarea rows={2} className={`${inputClass} mt-4`} value={form.known_allergies} onChange={(e) => update('known_allergies', e.target.value)} />
-                </Field>
-                <Field label="Medical Notes">
-                  <textarea rows={2} className={`${inputClass} mt-4`} value={form.medical_notes} onChange={(e) => update('medical_notes', e.target.value)} />
-                </Field>
-                <Field label="Talents &amp; Skills">
-                  <textarea rows={2} className={`${inputClass} mt-4`} value={form.talents_skills} onChange={(e) => update('talents_skills', e.target.value)} />
-                </Field>
-                <Field label="Additional Notes">
-                  <textarea rows={2} className={`${inputClass} mt-4`} value={form.additional_notes} onChange={(e) => update('additional_notes', e.target.value)} />
-                </Field>
-              </div>
-
-              <div className="pt-4 border-t border-gray-100">
-                <div className="text-sm font-bold text-navy mb-4">Emergency Contact</div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                  <Field label="Full Name" required error={errors.emergency_full_name}>
-                    <input className={errors.emergency_full_name ? inputErrorClass : inputClass} value={form.emergency_full_name} onChange={(e) => update('emergency_full_name', e.target.value)} />
-                  </Field>
-                  <Field label="Relationship">
-                    <select className={inputClass} value={form.emergency_relationship} onChange={(e) => update('emergency_relationship', e.target.value)}>
-                      {EC_RELATIONSHIP_CHOICES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                    </select>
-                  </Field>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field label="Phone" required error={errors.emergency_phone}>
-                    <input className={errors.emergency_phone ? inputErrorClass : inputClass} value={form.emergency_phone} onChange={(e) => update('emergency_phone', e.target.value)} />
-                  </Field>
-                  <Field label="WhatsApp Number">
-                    <input className={inputClass} value={form.emergency_whatsapp} onChange={(e) => update('emergency_whatsapp', e.target.value)} />
-                  </Field>
-                </div>
               </div>
             </div>
           )}
@@ -637,30 +743,66 @@ function EnrolWizard() {
           {/* STEP 6 — Review */}
           {step === 6 && (
             <div className="flex flex-col gap-6">
-              <div className="text-sm font-bold text-navy">Review &amp; Confirm</div>
+              <div className="flex items-center gap-4 pb-4 border-b border-gray-100">
+                <div className="w-16 h-16 rounded-2xl bg-navy text-white text-lg font-bold flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {form.photo ? (
+                    <img src={URL.createObjectURL(form.photo)} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    (form.first_name?.[0] || '') + (form.last_name?.[0] || '')
+                  )}
+                </div>
+                <div>
+                  <div className="font-serif text-lg font-bold text-navy">{form.first_name} {form.middle_name} {form.last_name}</div>
+                  <div className="text-xs text-gray-500">{form.date_of_birth} · {form.gender}</div>
+                </div>
+              </div>
 
               <div>
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Personal</div>
-                <div className="text-sm text-navy">{form.first_name} {form.middle_name} {form.last_name}</div>
-                <div className="text-xs text-gray-500 mt-1">{form.date_of_birth} · {form.gender}</div>
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Personal & Documents</div>
+                <div className="text-sm text-navy grid grid-cols-1 sm:grid-cols-2 gap-1">
+                  <div>Ghana Card: {form.ghana_card_number || '—'}</div>
+                  <div>Birth Cert.: {form.birth_certificate_number || '—'}</div>
+                  <div>Place of Birth: {form.place_of_birth || '—'}</div>
+                  <div>Home Town: {form.home_town || '—'}</div>
+                  <div>Nationality: {form.nationality || '—'}</div>
+                  <div>Religion: {form.religion || '—'}</div>
+                </div>
               </div>
 
               <div>
                 <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Academic</div>
                 <div className="text-sm text-navy">{selectedClassroom?.full_name || 'Not yet assigned'}</div>
-                <div className="text-xs text-gray-500 mt-1">Enrolling {form.enrollment_date} · {BOARDING_CHOICES.find((b) => b.value === form.boarding_status)?.label}</div>
+                <div className="text-xs text-gray-500 mt-1">Enrolling {form.enrollment_date}</div>
+                {form.siblings.length > 0 && (
+                  <div className="text-xs text-gray-500 mt-1">Siblings: {form.siblings.map((s) => s.full_name).join(', ')}</div>
+                )}
               </div>
 
               <div>
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Primary Guardian</div>
-                <div className="text-sm text-navy">{form.g1_first_name} {form.g1_last_name}</div>
-                <div className="text-xs text-gray-500 mt-1">{form.g1_phone} · {GUARDIAN_RELATIONSHIP_CHOICES.find((r) => r.value === form.g1_relationship)?.label}</div>
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Parents & Guardians</div>
+                <div className="flex flex-col gap-3">
+                  {allGuardiansForReview.map((g, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {g.photo ? <img src={URL.createObjectURL(g.photo)} alt="" className="w-full h-full object-cover" /> : (g.first_name?.[0] || '?')}
+                      </div>
+                      <div className="text-sm">
+                        <div className="text-navy font-semibold">{g.first_name} {g.last_name} <span className="text-gray-400 font-normal capitalize">({g.relationship})</span></div>
+                        <div className="text-xs text-gray-500">{g.phone}{g.occupation_name ? ` · ${g.occupation_name}` : ''}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div>
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Emergency Contact</div>
-                <div className="text-sm text-navy">{form.emergency_full_name}</div>
-                <div className="text-xs text-gray-500 mt-1">{form.emergency_phone}</div>
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Health</div>
+                <div className="text-sm text-navy grid grid-cols-1 sm:grid-cols-2 gap-1">
+                  <div>Blood Group: {form.blood_group}</div>
+                  <div>NHIS: {form.nhis_number || '—'}</div>
+                  <div>Disability: {form.disability_status ? 'Yes' : 'No'}</div>
+                  <div>Talents: {form.talents_skills || '—'}</div>
+                </div>
               </div>
 
               {submitError && (
@@ -671,8 +813,9 @@ function EnrolWizard() {
             </div>
           )}
 
-          {/* Navigation */}
-          <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
+          </div>
+
+            <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
             <button
               onClick={goBack}
               disabled={step === 1}
@@ -701,28 +844,25 @@ function EnrolWizard() {
         </div>
       </div>
 
-      {/* Processing overlay */}
       {phase === 'processing' && (
         <div className="fixed inset-0 bg-navy/95 backdrop-blur-sm z-[100] flex items-center justify-center px-4">
           <div className="flex flex-col items-center text-center w-full max-w-xs">
             <div className="w-14 h-14 rounded-full border-4 border-white/10 border-t-gold animate-spin mb-8" />
             <div className="flex flex-col gap-3 w-full">
-              {processSteps.map((label, i) => (
-                <div key={label} className="flex items-center gap-3 text-left">
+              {processLabels.map((label, i) => (
+                <div key={i} className="flex items-center gap-3 text-left">
                   <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 transition ${
-                    i < processStep ? 'bg-gold' : i === processStep ? 'bg-white/15' : 'bg-white/5'
+                    i < processIndex ? 'bg-gold' : i === processIndex ? 'bg-white/15' : 'bg-white/5'
                   }`}>
-                    {i < processStep ? (
+                    {i < processIndex ? (
                       <svg className="w-3 h-3 text-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
                       </svg>
-                    ) : i === processStep ? (
+                    ) : i === processIndex ? (
                       <div className="w-2 h-2 rounded-full bg-gold animate-pulse" />
                     ) : null}
                   </div>
-                  <span className={`text-sm transition ${
-                    i <= processStep ? 'text-white' : 'text-white/30'
-                  }`}>
+                  <span className={`text-sm transition ${i <= processIndex ? 'text-white' : 'text-white/30'}`}>
                     {label}
                   </span>
                 </div>
@@ -732,7 +872,6 @@ function EnrolWizard() {
         </div>
       )}
 
-      {/* Success overlay */}
       {phase === 'success' && successData && (
         <div className="fixed inset-0 bg-navy/95 backdrop-blur-sm z-[100] flex items-center justify-center px-4">
           <div className="flex flex-col items-center text-center animate-success-pop max-w-sm">
@@ -765,7 +904,6 @@ function EnrolWizard() {
         </div>
       )}
 
-      {/* Error overlay */}
       {phase === 'error' && (
         <div className="fixed inset-0 bg-navy/95 backdrop-blur-sm z-[100] flex items-center justify-center px-4">
           <div className="flex flex-col items-center text-center max-w-sm">

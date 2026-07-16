@@ -29,3 +29,17 @@ export async function bulkChangeStudentClass(payload) {
   const response = await api.post('/students/bulk-change-class/', payload)
   return response.data
 }
+
+export async function uploadStudentFile(studentId, field, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await api.post(`/students/${studentId}/upload/${field}/`, formData)
+  return response.data
+}
+
+export async function uploadGuardianFile(guardianId, field, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await api.post(`/students/guardians/${guardianId}/upload/${field}/`, formData)
+  return response.data
+}

@@ -5,6 +5,7 @@ import PortalHeader from '../../components/layout/PortalHeader'
 import { getAllStudents, bulkChangeStudentClass } from '../../api/students'
 import { getSchoolClassrooms } from '../../api/academics'
 import { useAuth } from '../../context/AuthContext'
+import { API_BASE_URL } from '../../config'
 
 const statusStyles = {
   active: 'bg-green-50 text-green-700',
@@ -283,7 +284,7 @@ function StudentList() {
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-lg bg-navy text-white text-[11px] font-bold flex items-center justify-center overflow-hidden flex-shrink-0">
                               {student.photo ? (
-                                <img src={student.photo} alt="" className="w-full h-full object-cover" />
+                                <img src={`${API_BASE_URL}${student.photo}`} alt="" className="w-full h-full object-cover" />
                               ) : (
                                 initials(student.full_name)
                               )}
@@ -335,7 +336,7 @@ function StudentList() {
                     <Link to={`/admin/students/${student.id}`} className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="w-10 h-10 rounded-lg bg-navy text-white text-xs font-bold flex items-center justify-center overflow-hidden flex-shrink-0">
                       {student.photo ? (
-                        <img src={student.photo} alt="" className="w-full h-full object-cover" />
+                        <img src={`${API_BASE_URL}${student.photo}`} alt="" className="w-full h-full object-cover" />
                       ) : (
                         initials(student.full_name)
                       )}

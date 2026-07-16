@@ -1,14 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import PortalHeader from '../../components/layout/PortalHeader'
 import { getStudentDetail, changeStudentClass } from '../../api/students'
 import { getSchoolClassrooms } from '../../api/academics'
+import DocumentsTab from './DocumentsTab'
+import { API_BASE_URL } from '../../config'
 
 const tabs = [
   { key: 'overview', label: 'Overview' },
   { key: 'guardians', label: 'Guardians & Contacts' },
   { key: 'health', label: 'Health & Safety' },
+  { key: 'documents', label: 'Documents & Letters' },
 ]
 
 const statusStyles = {
@@ -38,6 +41,25 @@ function StudentDetail() {
   const [classChangeRemarks, setClassChangeRemarks] = useState('')
   const [changingClass, setChangingClass] = useState(false)
   const [classChangeError, setClassChangeError] = useState('')
+
+
+  const tabScrollRef = useRef(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
+  const checkTabScroll = () => {
+  const el = tabScrollRef.current
+  if (!el) return
+  console.log('scrollWidth:', el.scrollWidth, 'clientWidth:', el.clientWidth)
+  setCanScrollLeft(el.scrollLeft > 4)
+  setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+}
+
+  const scrollTabs = (direction) => {
+    const el = tabScrollRef.current
+    if (!el) return
+    el.scrollBy({ left: direction === 'left' ? -160 : 160, behavior: 'smooth' })
+  }
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['student-detail', studentId],
@@ -75,11 +97,16 @@ function StudentDetail() {
   }
 
   useEffect(() => {
-    const onScroll = () => setIsScrolled(window.scrollY > 8)
-    window.addEventListener('scroll', onScroll)
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
+    checkTabScroll()
+    const el = tabScrollRef.current
+    if (!el) return
+    el.addEventListener('scroll', checkTabScroll)
+    window.addEventListener('resize', checkTabScroll)
+    return () => {
+      el.removeEventListener('scroll', checkTabScroll)
+      window.removeEventListener('resize', checkTabScroll)
+    }
+  }, [student])
   const initials = (name) => name ? name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase() : '—'
 
   const formatDate = (dateStr) => {
@@ -124,8 +151,28 @@ function StudentDetail() {
             <span className="text-navy font-semibold">{student.full_name}</span>
           </div>
 
-          <div className="bg-white rounded-t-2xl shadow">
-            <div className="flex items-center gap-1 px-3 sm:px-6 overflow-x-auto no-scrollbar">
+          <div className="bg-white rounded-t-2xl shadow relative">
+            {canScrollLeft && (
+              <button
+                onClick={() => scrollTabs('left')}
+                className="absolute left-0 top-0 bottom-0 z-10 w-10 flex items-center justify-center bg-gradient-to-r from-white via-white to-transparent rounded-tl-2xl"
+              >
+                <svg className="w-4 h-4 text-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
+            {canScrollRight && (
+              <button
+                onClick={() => scrollTabs('right')}
+                className="absolute right-0 top-0 bottom-0 z-10 w-10 flex items-center justify-center bg-gradient-to-l from-white via-white to-transparent rounded-tr-2xl"
+              >
+                <svg className="w-4 h-4 text-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            )}
+            <div ref={tabScrollRef} className="flex items-center gap-1 px-3 sm:px-6 overflow-x-auto no-scrollbar scroll-smooth">
               {tabs.map((tab) => (
                 <button
                   key={tab.key}
@@ -150,7 +197,7 @@ function StudentDetail() {
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 sm:p-6 border-b border-gray-100">
             <div className="w-16 h-16 rounded-2xl bg-navy text-white text-lg font-bold flex items-center justify-center overflow-hidden flex-shrink-0">
               {student.photo ? (
-                <img src={student.photo} alt="" className="w-full h-full object-cover" />
+                <img src={`${API_BASE_URL}${student.photo}`} alt="" className="w-full h-full object-cover" />
               ) : (
                 initials(student.full_name)
               )}
@@ -275,6 +322,11 @@ function StudentDetail() {
                 <InfoRow label="NHIS Number" value={student.nhis_number} />
               </div>
             </div>
+          )}
+
+          {/* Documents Tab */}
+          {activeTab === 'documents' && (
+            <DocumentsTab studentId={studentId} />
           )}
         </div>
       </div>
