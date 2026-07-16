@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import PortalHeader from '../../components/layout/PortalHeader'
@@ -15,6 +15,142 @@ const statusStyles = {
   suspended: 'bg-amber-50 text-amber-700',
 }
 
+const PAGE_SIZE = 15
+
+function StatCard({ icon, iconBg, iconColor, value, label, onClick, active }) {
+  const clickable = typeof onClick === 'function'
+  return (
+    <div
+      onClick={onClick}
+      className={`bg-white rounded-2xl p-4 flex items-center gap-3 shadow-sm border transition ${
+        clickable ? 'cursor-pointer hover:shadow-md hover:border-gray-200' : ''
+      } ${active ? 'border-gold ring-1 ring-gold/30' : 'border-transparent'}`}
+    >
+      <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
+        <svg className={`w-5 h-5 ${iconColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {icon}
+        </svg>
+      </div>
+      <div>
+        <div className="text-xl font-bold text-navy leading-tight">{value}</div>
+        <div className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold">{label}</div>
+      </div>
+    </div>
+  )
+}
+
+function StudentRow({ student, selected, onToggle }) {
+  const initials = (name) => name ? name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase() : '—'
+
+  return (
+    <tr className={`border-b border-gray-50 hover:bg-gray-50/50 transition ${selected ? 'bg-gold/5' : ''}`}>
+      <td className="p-3">
+        <input type="checkbox" checked={selected} onChange={onToggle} className="w-4 h-4 accent-navy cursor-pointer" />
+      </td>
+      <td className="p-3">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-navy text-white text-[11px] font-bold flex items-center justify-center overflow-hidden flex-shrink-0">
+            {student.photo ? (
+              <img src={`${API_BASE_URL}${student.photo}`} alt="" className="w-full h-full object-cover" />
+            ) : (
+              initials(student.full_name)
+            )}
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-navy">{student.full_name}</div>
+            <div className="text-xs text-gray-400">{student.student_id}</div>
+          </div>
+        </div>
+      </td>
+      <td className="p-3">
+        {student.primary_guardian_name ? (
+          <div>
+            <div className="text-sm text-navy font-medium">{student.primary_guardian_name}</div>
+            <div className="text-xs text-gray-400">{student.primary_guardian_phone || '—'}</div>
+          </div>
+        ) : (
+          <span className="text-sm text-gray-300">No guardian on file</span>
+        )}
+      </td>
+      <td className="p-3 text-sm text-gray-500">{student.gender}</td>
+      <td className="p-3">
+        <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full capitalize ${statusStyles[student.status] || 'bg-gray-100 text-gray-500'}`}>
+          {student.status}
+        </span>
+      </td>
+      <td className="p-3 text-right">
+        <Link
+          to={`/admin/students/${student.id}`}
+          className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
+        >
+          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+        </Link>
+      </td>
+    </tr>
+  )
+}
+
+function StudentMobileCard({ student, selected, onToggle }) {
+  const initials = (name) => name ? name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase() : '—'
+
+  return (
+    <div className={`flex items-center gap-3 p-3.5 transition ${selected ? 'bg-gold/5' : ''}`}>
+      <input type="checkbox" checked={selected} onChange={onToggle} className="w-4 h-4 accent-navy cursor-pointer flex-shrink-0" />
+      <Link to={`/admin/students/${student.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="w-10 h-10 rounded-lg bg-navy text-white text-xs font-bold flex items-center justify-center overflow-hidden flex-shrink-0">
+          {student.photo ? (
+            <img src={`${API_BASE_URL}${student.photo}`} alt="" className="w-full h-full object-cover" />
+          ) : (
+            initials(student.full_name)
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold text-navy truncate">{student.full_name}</div>
+          <div className="text-xs text-gray-400">{student.student_id}</div>
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            {student.primary_guardian_name && (
+              <span className="text-[11px] text-gray-500">{student.primary_guardian_name} · {student.primary_guardian_phone}</span>
+            )}
+          </div>
+          <div className="mt-1">
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${statusStyles[student.status] || 'bg-gray-100 text-gray-500'}`}>
+              {student.status}
+            </span>
+          </div>
+        </div>
+        <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </Link>
+    </div>
+  )
+}
+
+function GroupHeader({ label, count }) {
+  return (
+    <tr>
+      <td colSpan={6} className="px-3 pt-5 pb-2 bg-gray-50/80 border-y-2 border-navy/10">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-navy">{label}</span>
+          <span className="text-[11px] text-gray-400 font-semibold">{count} student{count !== 1 ? 's' : ''}</span>
+        </div>
+      </td>
+    </tr>
+  )
+}
+
+function GroupHeaderMobile({ label, count }) {
+  return (
+    <div className="px-3.5 pt-4 pb-2 bg-gray-50/80 border-y-2 border-navy/10">
+      <span className="text-sm font-bold text-navy">{label}</span>
+      <span className="text-[11px] text-gray-400 font-semibold ml-2">{count} student{count !== 1 ? 's' : ''}</span>
+    </div>
+  )
+}
+
 function StudentList() {
   const { activeMember } = useAuth()
   const queryClient = useQueryClient()
@@ -23,6 +159,9 @@ function StudentList() {
   const [statusFilter, setStatusFilter] = useState('')
   const [classFilter, setClassFilter] = useState('')
   const [appliedFilters, setAppliedFilters] = useState({ search: '', status: '', classroom: '' })
+  const [viewMode, setViewMode] = useState('all') // 'all' | 'unassigned'
+  const [page, setPage] = useState(1)
+  const [sortDir, setSortDir] = useState('asc')
 
   const [selectedIds, setSelectedIds] = useState([])
   const [showBulkModal, setShowBulkModal] = useState(false)
@@ -38,7 +177,7 @@ function StudentList() {
   })
   const classrooms = classroomsData?.data?.classrooms || []
 
-  // Unfiltered — for stat counts
+  // Unfiltered — for stat counts (also gives us the unassigned count for free)
   const { data: allData } = useQuery({
     queryKey: ['all-students-unfiltered'],
     queryFn: () => getAllStudents({}),
@@ -46,27 +185,67 @@ function StudentList() {
   const allStudents = allData?.data?.students || []
   const activeCount = allStudents.filter((s) => s.status === 'active').length
   const totalCount = allStudents.length
+  const unassignedCount = allStudents.filter((s) => !s.current_class_id).length
 
-  // Filtered — for the actual list shown
+  const isGrouped = viewMode === 'all' && !appliedFilters.search
+
+  // Main paginated/filtered list
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['students', appliedFilters],
+    queryKey: ['students', appliedFilters, viewMode, page, sortDir],
     queryFn: () => getAllStudents({
       search: appliedFilters.search || undefined,
       status: appliedFilters.status || undefined,
       classroom: appliedFilters.classroom || undefined,
+      unassigned: viewMode === 'unassigned' ? 'true' : undefined,
+      exclude_unassigned: viewMode === 'all' ? 'true' : undefined,
+      page,
+      page_size: PAGE_SIZE,
+      sort_dir: sortDir,
     }),
   })
   const students = data?.data?.students || []
+  const totalPages = data?.data?.total_pages || 0
+  const hasNext = data?.data?.has_next || false
+  const hasPrevious = data?.data?.has_previous || false
+  const resultCount = data?.data?.count || 0
+
+  // Build grouped segments from the current page's rows, in order.
+  // Groups can repeat across page boundaries by design — no cross-page stitching.
+  const groups = useMemo(() => {
+    if (!isGrouped) return null
+    const segments = []
+    let current = null
+    for (const student of students) {
+      const key = student.current_class_id
+      if (!current || current.key !== key) {
+        current = { key, label: student.classroom_name, students: [] }
+        segments.push(current)
+      }
+      current.students.push(student)
+    }
+    return segments
+  }, [students, isGrouped])
 
   const handleFilter = () => {
+    setPage(1)
     setAppliedFilters({ search, status: statusFilter, classroom: classFilter })
   }
 
-  const initials = (name) => name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
+  const toggleSort = () => {
+    setPage(1)
+    setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+  }
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '—'
-    return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+  const goToUnassigned = () => {
+    setViewMode('unassigned')
+    setPage(1)
+    setSelectedIds([])
+  }
+
+  const goToAll = () => {
+    setViewMode('all')
+    setPage(1)
+    setSelectedIds([])
   }
 
   const toggleSelect = (id) => {
@@ -111,6 +290,13 @@ function StudentList() {
     }
   }
 
+  // Build a compact page-number list with ellipsis for large page counts
+  const pageNumbers = useMemo(() => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1)
+    const nums = new Set([1, totalPages, page, page - 1, page + 1])
+    return Array.from(nums).filter((n) => n >= 1 && n <= totalPages).sort((a, b) => a - b)
+  }, [totalPages, page])
+
   return (
     <div className="min-h-screen">
       <PortalHeader />
@@ -141,50 +327,32 @@ function StudentList() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-          <div className="bg-white rounded-xl p-4 flex items-center gap-3 shadow-sm">
-            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </div>
-            <div>
-              <div className="text-lg font-bold text-navy">{activeCount}</div>
-              <div className="text-[10px] text-gray-400 uppercase tracking-wide">Active Students</div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl p-4 flex items-center gap-3 shadow-sm">
-            <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <div className="text-lg font-bold text-navy">{totalCount}</div>
-              <div className="text-[10px] text-gray-400 uppercase tracking-wide">Total Enrolled</div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl p-4 flex items-center gap-3 shadow-sm">
-            <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-            </div>
-            <div>
-              <div className="text-lg font-bold text-navy">{classrooms.length}</div>
-              <div className="text-[10px] text-gray-400 uppercase tracking-wide">Active Classes</div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl p-4 flex items-center gap-3 shadow-sm">
-            <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </div>
-            <div>
-              <div className="text-lg font-bold text-navy">{students.length}</div>
-              <div className="text-[10px] text-gray-400 uppercase tracking-wide">Showing</div>
-            </div>
-          </div>
+          <StatCard
+            value={activeCount}
+            label="Active Students"
+            iconBg="bg-blue-50" iconColor="text-blue-600"
+            icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />}
+          />
+          <StatCard
+            value={totalCount}
+            label="Total Enrolled"
+            iconBg="bg-green-50" iconColor="text-green-600"
+            icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />}
+          />
+          <StatCard
+            value={classrooms.length}
+            label="Active Classes"
+            iconBg="bg-purple-50" iconColor="text-purple-600"
+            icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />}
+          />
+          <StatCard
+            value={unassignedCount}
+            label="Unassigned Students"
+            iconBg="bg-amber-50" iconColor="text-amber-600"
+            active={viewMode === 'unassigned'}
+            onClick={viewMode === 'unassigned' ? goToAll : goToUnassigned}
+            icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />}
+          />
         </div>
 
         {/* Search + Filters */}
@@ -233,11 +401,22 @@ function StudentList() {
           </div>
         </div>
 
+        {viewMode === 'unassigned' && (
+          <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4">
+            <div className="text-sm text-amber-800 font-semibold">
+              Showing students admitted but not yet placed in a class.
+            </div>
+            <button onClick={goToAll} className="text-xs font-bold text-amber-700 hover:underline whitespace-nowrap">
+              Back to all students
+            </button>
+          </div>
+        )}
+
         {/* Table */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="flex items-center justify-between p-4 border-b border-gray-100">
             <div className="text-sm font-bold text-navy">Student Records</div>
-            <div className="text-xs text-gray-400">{students.length} results</div>
+            <div className="text-xs text-gray-400">{resultCount} results</div>
           </div>
 
           {isLoading && <div className="text-center py-14 text-gray-400 text-sm">Loading students...</div>}
@@ -261,105 +440,121 @@ function StudentList() {
                           className="w-4 h-4 accent-navy cursor-pointer"
                         />
                       </th>
-                      <th className="p-3 text-[10px] font-bold text-gray-400 uppercase tracking-wide">Student</th>
-                      <th className="p-3 text-[10px] font-bold text-gray-400 uppercase tracking-wide">Class</th>
+                      <th className="p-3 text-[10px] font-bold text-gray-400 uppercase tracking-wide">
+                        <button onClick={toggleSort} className="flex items-center gap-1 hover:text-navy transition">
+                          Student
+                          <svg className={`w-3 h-3 transition-transform ${sortDir === 'desc' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      </th>
+                      <th className="p-3 text-[10px] font-bold text-gray-400 uppercase tracking-wide">Guardian Contact</th>
                       <th className="p-3 text-[10px] font-bold text-gray-400 uppercase tracking-wide">Gender</th>
-                      <th className="p-3 text-[10px] font-bold text-gray-400 uppercase tracking-wide">Enrolled</th>
                       <th className="p-3 text-[10px] font-bold text-gray-400 uppercase tracking-wide">Status</th>
                       <th className="p-3"></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {students.map((student) => (
-                      <tr key={student.id} className={`border-b border-gray-50 hover:bg-gray-50/50 transition ${selectedIds.includes(student.id) ? 'bg-gold/5' : ''}`}>
-                        <td className="p-3">
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.includes(student.id)}
-                            onChange={() => toggleSelect(student.id)}
-                            className="w-4 h-4 accent-navy cursor-pointer"
-                          />
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-lg bg-navy text-white text-[11px] font-bold flex items-center justify-center overflow-hidden flex-shrink-0">
-                              {student.photo ? (
-                                <img src={`${API_BASE_URL}${student.photo}`} alt="" className="w-full h-full object-cover" />
-                              ) : (
-                                initials(student.full_name)
-                              )}
-                            </div>
-                            <div>
-                              <div className="text-sm font-semibold text-navy">{student.full_name}</div>
-                              <div className="text-xs text-gray-400">{student.student_id}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-3 text-sm text-blue-600 font-medium">{student.classroom_name || '—'}</td>
-                        <td className="p-3 text-sm text-gray-500">{student.gender}</td>
-                        <td className="p-3 text-sm text-gray-500">{formatDate(student.enrollment_date)}</td>
-                        <td className="p-3">
-                          <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full capitalize ${statusStyles[student.status] || 'bg-gray-100 text-gray-500'}`}>
-                            {student.status}
-                          </span>
-                        </td>
-                        <td className="p-3 text-right">
-                          <Link
-                            to={`/admin/students/${student.id}`}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
-                          >
-                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
+                    {isGrouped ? (
+                      groups.map((group) => (
+                        <>
+                          <GroupHeader key={`h-${group.key}-${group.students[0].id}`} label={group.label} count={group.students.length} />
+                          {group.students.map((student) => (
+                            <StudentRow
+                              key={student.id}
+                              student={student}
+                              selected={selectedIds.includes(student.id)}
+                              onToggle={() => toggleSelect(student.id)}
+                            />
+                          ))}
+                        </>
+                      ))
+                    ) : (
+                      students.map((student) => (
+                        <StudentRow
+                          key={student.id}
+                          student={student}
+                          selected={selectedIds.includes(student.id)}
+                          onToggle={() => toggleSelect(student.id)}
+                        />
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
 
               {/* Mobile stacked cards */}
-             <div className="md:hidden flex flex-col divide-y divide-gray-50">
-                {students.map((student) => (
-                  <div
-                    key={student.id}
-                    className={`flex items-center gap-3 p-3.5 transition ${selectedIds.includes(student.id) ? 'bg-gold/5' : ''}`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.includes(student.id)}
-                      onChange={() => toggleSelect(student.id)}
-                      className="w-4 h-4 accent-navy cursor-pointer flex-shrink-0"
-                    />
-                    <Link to={`/admin/students/${student.id}`} className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-lg bg-navy text-white text-xs font-bold flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {student.photo ? (
-                        <img src={`${API_BASE_URL}${student.photo}`} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        initials(student.full_name)
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-semibold text-navy truncate">{student.full_name}</div>
-                      <div className="text-xs text-gray-400">{student.student_id}</div>
-                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                        {student.classroom_name && (
-                          <span className="text-[11px] text-blue-600 font-medium">{student.classroom_name}</span>
-                        )}
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${statusStyles[student.status] || 'bg-gray-100 text-gray-500'}`}>
-                          {student.status}
-                        </span>
+              <div className="md:hidden flex flex-col divide-y divide-gray-50">
+                {isGrouped ? (
+                  groups.map((group) => (
+                    <div key={`m-${group.key}-${group.students[0].id}`}>
+                      <GroupHeaderMobile label={group.label} count={group.students.length} />
+                      <div className="flex flex-col divide-y divide-gray-50">
+                        {group.students.map((student) => (
+                          <StudentMobileCard
+                            key={student.id}
+                            student={student}
+                            selected={selectedIds.includes(student.id)}
+                            onToggle={() => toggleSelect(student.id)}
+                          />
+                        ))}
                       </div>
                     </div>
-                    <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  ))
+                ) : (
+                  students.map((student) => (
+                    <StudentMobileCard
+                      key={student.id}
+                      student={student}
+                      selected={selectedIds.includes(student.id)}
+                      onToggle={() => toggleSelect(student.id)}
+                    />
+                  ))
+                )}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-1.5 p-4 border-t border-gray-100">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={!hasPrevious}
+                    className="flex items-center gap-1 text-xs font-semibold text-gray-500 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Previous
+                  </button>
+
+                  {pageNumbers.map((n, i) => (
+                    <span key={n} className="flex items-center">
+                      {i > 0 && pageNumbers[i - 1] !== n - 1 && (
+                        <span className="text-xs text-gray-300 px-1">···</span>
+                      )}
+                      <button
+                        onClick={() => setPage(n)}
+                        className={`w-8 h-8 rounded-lg text-xs font-bold transition ${
+                          n === page ? 'bg-navy text-white' : 'text-gray-500 hover:bg-gray-50'
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    </span>
+                  ))}
+
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={!hasNext}
+                    className="flex items-center gap-1 text-xs font-semibold text-gray-500 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    Next
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                     </svg>
-                    </Link>
-                  </div>
-                ))}
-              </div>
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>
