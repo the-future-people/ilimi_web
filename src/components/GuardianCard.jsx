@@ -20,6 +20,13 @@ const TITLE_CHOICES = [
 const inputClass = "px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-gold"
 const inputErrorClass = "px-3 py-2.5 border border-red-300 rounded-lg text-sm outline-none focus:border-red-400"
 
+const tintClasses = {
+  default: 'border-gray-100 bg-white',
+  parent1: 'border-navy/10 bg-navy/[0.02]',
+  parent2: 'border-gold/20 bg-gold/[0.04]',
+  guardian: 'border-gray-200 bg-gray-50/60',
+}
+
 function Field({ label, required, error, children }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -41,11 +48,13 @@ export default function GuardianCard({
   errors = {},
   showRemove,
   isPrimary,
+  tint = 'default',
 }) {
   const update = (field, value) => onUpdate({ ...data, [field]: value })
 
+
   return (
-    <div className="border border-gray-100 rounded-xl p-4 sm:p-5 flex flex-col gap-4">
+    <div className={`border rounded-xl p-4 sm:p-5 flex flex-col gap-4 ${tintClasses[tint] || tintClasses.default}`}>
       {showRemove && (
         <div className="flex justify-end -mb-2">
           <button
@@ -55,6 +64,12 @@ export default function GuardianCard({
           >
             Remove
           </button>
+        </div>
+      )}
+
+    {tint === 'guardian' && (
+        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide -mb-2">
+          Guardian {data.__guardianNumber || ''}
         </div>
       )}
 
@@ -104,63 +119,70 @@ export default function GuardianCard({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <PhotoCapture
-          label="Photo"
-          allowCamera={false}
-          value={data.photo || null}
-          onChange={(file) => update('photo', file)}
+        <OccupationTypeahead
+          label="Occupation"
+          value={data.occupation_name || ''}
+          onChange={(text) => update('occupation_name', text)}
         />
-        <FingerprintUpload
-          label="Fingerprint Scan"
-          value={data.fingerprint_data || null}
-          onChange={(file) => update('fingerprint_data', file)}
-        />
+        <Field label="Digital Address (GhanaPost GPS)">
+          <input
+            className={inputClass}
+            placeholder="e.g. GA-183-9820"
+            value={data.digital_address || ''}
+            onChange={(e) => update('digital_address', e.target.value)}
+          />
+        </Field>
       </div>
-
-      <Field label="Residential Address">
-        <textarea rows={2} className={inputClass} value={data.residential_address || ''} onChange={(e) => update('residential_address', e.target.value)} />
-      </Field>
-
-      <Field label="Digital Address (GhanaPost GPS)">
-        <input
-          className={inputClass}
-          placeholder="e.g. GA-183-9820"
-          value={data.digital_address || ''}
-          onChange={(e) => update('digital_address', e.target.value)}
-        />
-      </Field>
-
-      <OccupationTypeahead
-        label="Occupation"
-        value={data.occupation_name || ''}
-        onChange={(text) => update('occupation_name', text)}
-      />
-
-      <Field label="Ghana Card Number">
-        <input
-          className={inputClass}
-          placeholder="e.g. GHA-123456789-0"
-          value={data.ghana_card_number || ''}
-          onChange={(e) => update('ghana_card_number', e.target.value)}
-        />
-      </Field>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <PhotoCapture
-          label="Ghana Card (Front)"
-          allowCamera={false}
-          value={data.ghana_card_front || null}
-          onChange={(file) => update('ghana_card_front', file)}
-        />
-        <PhotoCapture
-          label="Ghana Card (Back)"
-          allowCamera={false}
-          value={data.ghana_card_back || null}
-          onChange={(file) => update('ghana_card_back', file)}
-        />
+        <Field label="Residential Address">
+          <textarea rows={2} className={inputClass} value={data.residential_address || ''} onChange={(e) => update('residential_address', e.target.value)} />
+        </Field>
+        <Field label="Ghana Card Number">
+          <input
+            className={inputClass}
+            placeholder="e.g. GHA-123456789-0"
+            value={data.ghana_card_number || ''}
+            onChange={(e) => update('ghana_card_number', e.target.value)}
+          />
+        </Field>
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="rounded-lg bg-blue-50/60 border border-blue-100 p-2.5">
+          <PhotoCapture
+            label="Photo"
+            allowCamera={false}
+            value={data.photo || null}
+            onChange={(file) => update('photo', file)}
+          />
+        </div>
+        <div className="rounded-lg bg-emerald-50/60 border border-emerald-100 p-2.5">
+          <PhotoCapture
+            label="Ghana Card (Front)"
+            allowCamera={false}
+            value={data.ghana_card_front || null}
+            onChange={(file) => update('ghana_card_front', file)}
+          />
+        </div>
+        <div className="rounded-lg bg-amber-50/60 border border-amber-100 p-2.5">
+          <PhotoCapture
+            label="Ghana Card (Back)"
+            allowCamera={false}
+            value={data.ghana_card_back || null}
+            onChange={(file) => update('ghana_card_back', file)}
+          />
+        </div>
+        <div className="rounded-lg bg-purple-50/60 border border-purple-100 p-2.5">
+          <FingerprintUpload
+            label="Fingerprint"
+            value={data.fingerprint_data || null}
+            onChange={(file) => update('fingerprint_data', file)}
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
         <label className="flex items-center gap-2">
           <input
             type="checkbox"

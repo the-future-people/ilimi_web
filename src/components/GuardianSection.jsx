@@ -26,7 +26,7 @@ const emptyPerson = () => ({
   can_pickup: true, is_fee_payer: false,
 })
 
-export default function GuardianSection({ parents, guardians, onChangeParents, onChangeGuardians, errors = {} }) {
+export default function GuardianSection({ parents, guardians, onChangeParents, onChangeGuardians, parentErrors = [], guardianErrors = [] }) {
   const updateParent = (index, updated) => {
     const next = [...parents]
     next[index] = updated
@@ -94,7 +94,8 @@ export default function GuardianSection({ parents, guardians, onChangeParents, o
               onRemove={() => removeParent(i)}
               relationshipChoices={PARENT_RELATIONSHIP_CHOICES}
               lockedRelationship={i === 1 ? secondParentLocked : null}
-              errors={i === 0 ? errors : {}}
+              tint={i === 0 ? 'parent1' : 'parent2'}
+              errors={parentErrors[i] || {}}
               showRemove={i > 0}
               isPrimary={i === 0}
             />
@@ -125,12 +126,13 @@ export default function GuardianSection({ parents, guardians, onChangeParents, o
           {guardians.map((guardian, i) => (
             <GuardianCard
               key={i}
-              data={guardian}
+              data={{ ...guardian, __guardianNumber: i + 1 }}
               onUpdate={(updated) => updateGuardian(i, updated)}
               onRemove={() => removeGuardian(i)}
               relationshipChoices={GUARDIAN_RELATIONSHIP_CHOICES}
               lockedRelationship={null}
-              errors={{}}
+              tint="guardian"
+              errors={guardianErrors[i] || {}}
               showRemove
               isPrimary={false}
             />

@@ -61,6 +61,13 @@ function Field({ label, required, error, children }) {
 const inputClass = "px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-gold"
 const inputErrorClass = "px-3 py-2.5 border border-red-300 rounded-lg text-sm outline-none focus:border-red-400"
 
+const tintClasses = {
+  default: 'border-gray-100 bg-white',
+  parent1: 'border-navy/10 bg-navy/[0.02]',
+  parent2: 'border-gold/20 bg-gold/[0.04]',
+  guardian: 'border-gray-200 bg-gray-50/60',
+}
+
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 const emptyPerson = () => ({
   title: '', first_name: '', last_name: '', relationship: '',
@@ -186,11 +193,26 @@ function EnrolWizard() {
       if (!form.gender) errs.gender = 'Gender is required.'
     }
     if (s === 3) {
-      const primary = form.parents[0]
-      if (!primary?.first_name?.trim()) errs.first_name = 'Required.'
-      if (!primary?.last_name?.trim()) errs.last_name = 'Required.'
-      if (!primary?.phone?.trim()) errs.phone = 'Required.'
-      if (!primary?.relationship) errs.relationship = 'Required.'
+      const validatePerson = (p, isPrimary) => {
+        const personErrs = {}
+        const hasAnyData = p.first_name?.trim() || p.last_name?.trim() || p.phone?.trim() || p.relationship
+        if (!isPrimary && !hasAnyData) return personErrs // empty optional slot, skip
+        if (!p.first_name?.trim()) personErrs.first_name = 'Required.'
+        if (!p.last_name?.trim()) personErrs.last_name = 'Required.'
+        if (!p.phone?.trim()) personErrs.phone = 'Required.'
+        if (!p.relationship) personErrs.relationship = 'Required.'
+        return personErrs
+      }
+
+      const parentErrors = form.parents.map((p, i) => validatePerson(p, i === 0))
+      const guardianErrors = form.guardians.map((g) => validatePerson(g, false))
+
+      const hasParentErrors = parentErrors.some((e) => Object.keys(e).length > 0)
+      const hasGuardianErrors = guardianErrors.some((e) => Object.keys(e).length > 0)
+
+      if (hasParentErrors || hasGuardianErrors) {
+        errs.guardianSection = { parents: parentErrors, guardians: guardianErrors }
+      }
     }
     if (s === 4) {
       if (!form.enrollment_date) errs.enrollment_date = 'Enrollment date is required.'
@@ -353,12 +375,12 @@ const handleSubmit = async () => {
           return
         }
         setProcessIndex(i)
-      }, 900)
+      }, 1400)
 
       const res = await enrolPromise
       clearInterval(preInterval)
       setProcessIndex(preLabels.length - 1)
-      await wait(400)
+      await wait(1000)
 
       const student = res.data || res
       const studentId = student.id
@@ -386,12 +408,12 @@ const handleSubmit = async () => {
           // enrolment — the student and guardian records already exist.
         }
         const elapsed = Date.now() - start
-        if (elapsed < 500) await wait(500 - elapsed)
+        if (elapsed < 1200) await wait(1200 - elapsed)
       }
 
       // Phase C — finalize
       setProcessIndex(allLabels.length - 1)
-      await wait(700)
+      await wait(1500)
 
       setSuccessData(student)
       setPhase('success')
@@ -587,7 +609,8 @@ const handleSubmit = async () => {
               guardians={form.guardians}
               onChangeParents={(next) => update('parents', next)}
               onChangeGuardians={(next) => update('guardians', next)}
-              errors={errors}
+              parentErrors={errors.guardianSection?.parents || []}
+              guardianErrors={errors.guardianSection?.guardians || []}
             />
           )}
 
