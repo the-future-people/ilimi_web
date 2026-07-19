@@ -19,3 +19,8 @@ export async function generateDocument(studentId, payload) {
   const response = await api.post(`/documents/students/${studentId}/documents/generate/`, payload)
   return response.data
 }
+
+export async function getGeneratedDocuments(params = {}) {
+  const response = await api.get('/documents/generated/', { params })
+  return response.data
+}

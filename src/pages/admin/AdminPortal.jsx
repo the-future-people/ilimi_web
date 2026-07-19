@@ -31,7 +31,7 @@ const modules = [
     gradient: 'from-[#15803d] to-[#22c55e]',
     image: classroomImg,
     href: '/admin/staff',
-    available: false,
+    available: true,
   },
   {
     key: 'attendance',

@@ -29,3 +29,8 @@ export async function markTourSeen(memberId) {
   const response = await api.post(`/schools/my-memberships/${memberId}/mark-tour-seen/`)
   return response.data
 }
+
+export async function getSubjects() {
+  const response = await api.get('/academics/subjects/')
+  return response.data
+}

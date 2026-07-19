@@ -11,6 +11,11 @@ import StudentList from './pages/admin/StudentList'
 import StudentDetail from './pages/admin/StudentDetail'
 import EnrolWizard from './pages/admin/EnrolWizard'
 import Register from './pages/Register'
+import StudentDocumentationHub from './pages/admin/StudentDocumentationHub'
+import StaffList from './pages/admin/StaffList'
+import StaffRegistrationWizard from './pages/admin/StaffRegistrationWizard'
+import PublicEnrolForm from './pages/PublicEnrolForm'
+import OnboardingCenter from './pages/admin/OnboardingCenter'
 
 function App() {
   return (
@@ -19,11 +24,13 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/select-membership" element={<SelectMembership />} />
       <Route path="/redirect" element={<RoleRedirect />} />
+      <Route path="/admin/students/enrol" element={ <ProtectedRoute requiredRole={['school_admin', 'branch_manager']}> <EnrolWizard /> </ProtectedRoute>}/>
+      <Route path="/enrol/:token" element={<PublicEnrolForm />} />
       <Route
-        path="/admin/students/enrol"
+        path="/admin/students/documents"
         element={
           <ProtectedRoute requiredRole={['school_admin', 'branch_manager']}>
-            <EnrolWizard />
+            <StudentDocumentationHub />
           </ProtectedRoute>
         }
       />
@@ -43,6 +50,31 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/admin/staff"
+        element={
+          <ProtectedRoute requiredRole={['school_admin', 'branch_manager']}>
+            <StaffList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/staff/register"
+        element={
+          <ProtectedRoute requiredRole={['school_admin', 'branch_manager']}>
+            <StaffRegistrationWizard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/students/onboarding"
+        element={
+          <ProtectedRoute requiredRole={['school_admin', 'branch_manager']}>
+            <OnboardingCenter />
+          </ProtectedRoute>
+        }
+      />
+      
       <Route
         path="/admin/students"
         element={

@@ -4,3 +4,8 @@ export async function searchOccupations(query) {
   const response = await api.get('/core/occupations/', { params: { search: query } })
   return response.data
 }
+
+export async function searchPositions(query) {
+  const response = await api.get('/core/positions/', { params: { search: query } })
+  return response.data
+}
