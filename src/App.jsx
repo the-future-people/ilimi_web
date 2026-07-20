@@ -16,6 +16,7 @@ import StaffList from './pages/admin/StaffList'
 import StaffRegistrationWizard from './pages/admin/StaffRegistrationWizard'
 import PublicEnrolForm from './pages/PublicEnrolForm'
 import OnboardingCenter from './pages/admin/OnboardingCenter'
+import CommunicationsCenter from './pages/admin/CommunicationsCenter'
 
 function App() {
   return (
@@ -100,6 +101,14 @@ function App() {
         }
       />
       <Route path="/" element={<RoleRedirect />} />
+      <Route
+        path="/admin/communications"
+        element={
+          <ProtectedRoute requiredRole={['school_admin', 'branch_manager']}>
+            <CommunicationsCenter />
+          </ProtectedRoute>
+        }
+      />
       <Route
   path="/teacher/classroom/:classroomId"
   element={

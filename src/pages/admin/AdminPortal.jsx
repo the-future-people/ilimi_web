@@ -51,14 +51,15 @@ const modules = [
     image: reportingImg,
     available: false,
   },
-  {
+{
     key: 'communications',
-    title: 'Communications',
-    desc: 'Send SMS alerts to parents and broadcast announcements.',
-    tags: ['SMS', 'Parents', 'Notices'],
+    title: 'Communications, Legal & Consents',
+    desc: 'Manage parental consent for excursions, first aid, and media use.',
+    tags: ['Consent', 'Excursions', 'Legal'],
     gradient: 'from-[#b45309] to-[#f59e0b]',
     image: communicationsImg,
-    available: false,
+    href: '/admin/communications',
+    available: true,
   },
   {
     key: 'reports',
@@ -98,10 +99,10 @@ const tourSteps = [
     content: "Collect fees via Mobile Money and track payments from here.",
     title: 'Fees & Finance',
   },
-  {
+ {
     target: '[data-tour="communications"]',
-    content: "Send SMS alerts to parents and broadcast announcements from here.",
-    title: 'Communications',
+    content: "Manage parental consent for excursions, first aid administration, and media use here.",
+    title: 'Communications, Legal & Consents',
   },
   {
     target: '[data-tour="reports"]',
