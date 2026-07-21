@@ -1,7 +1,8 @@
 import axios from 'axios'
+import { API_BASE_URL } from '../config'
 
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000/api/v1',
+  baseURL: `${API_BASE_URL}/api/v1`,
 })
 
 // Attach access token to every request
@@ -37,7 +38,7 @@ api.interceptors.response.use(
       }
 
       try {
-        const response = await axios.post('http://127.0.0.1:8000/api/v1/auth/token/refresh/', {
+        const response = await axios.post(`${API_BASE_URL}/api/v1/auth/token/refresh/`, {
           refresh: refreshToken,
         })
         const newAccessToken = response.data.data?.access || response.data.access
