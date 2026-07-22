@@ -131,7 +131,7 @@ function StaffCard({ member }) {
   )
 }
 
-function StaffList() {
+function StaffList({ embedded = false }) {
   const { activeMember } = useAuth()
 
   const [search, setSearch] = useState('')
@@ -192,30 +192,26 @@ function StaffList() {
   })()
 
   return (
-    <div className="min-h-screen">
-      <PortalHeader />
+    <div className={embedded ? '' : 'min-h-screen'}>
+      {!embedded && <PortalHeader />}
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-8">
-        <div className="flex items-center gap-2 text-xs text-gray-400 mb-5">
-          <Link to="/admin" className="hover:text-navy transition">Dashboard</Link>
-          <span className="text-gray-300">›</span>
-          <span className="text-navy font-semibold">Teachers &amp; Staff</span>
-        </div>
+      <div className={embedded ? '' : 'max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-8'}>
+        {!embedded && (
+          <>
+            <div className="flex items-center gap-2 text-xs text-gray-400 mb-5">
+              <Link to="/admin" className="hover:text-navy transition">Dashboard</Link>
+              <span className="text-gray-300">›</span>
+              <span className="text-navy font-semibold">Teachers &amp; Staff</span>
+            </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-navy">Teachers &amp; Staff</h1>
-            <p className="text-sm text-gray-400 mt-1">
-              {activeMember?.school_name} · {totalCount} staff member{totalCount !== 1 ? 's' : ''} on record
-            </p>
-          </div>
-          <Link to="/admin/staff/register" className="flex items-center gap-2 bg-navy text-white text-sm font-bold px-5 py-2.5 rounded-lg hover:bg-navy-light transition whitespace-nowrap">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-            </svg>
-            Register Staff
-          </Link>
-        </div>
+            <div className="mb-6">
+              <h1 className="font-serif text-2xl sm:text-3xl font-bold text-navy">Teachers &amp; Staff</h1>
+              <p className="text-sm text-gray-400 mt-1">
+                {activeMember?.school_name} · {totalCount} staff member{totalCount !== 1 ? 's' : ''} on record
+              </p>
+            </div>
+          </>
+        )}
 
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
           <div className="bg-white rounded-2xl p-4 flex items-center gap-3 shadow-sm">

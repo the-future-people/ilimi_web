@@ -12,7 +12,7 @@ import StudentDetail from './pages/admin/StudentDetail'
 import EnrolWizard from './pages/admin/EnrolWizard'
 import Register from './pages/Register'
 import StudentDocumentationHub from './pages/admin/StudentDocumentationHub'
-import StaffList from './pages/admin/StaffList'
+import StaffTabs from './pages/admin/StaffTabs'
 import StaffRegistrationWizard from './pages/admin/StaffRegistrationWizard'
 import PublicEnrolForm from './pages/PublicEnrolForm'
 import OnboardingCenter from './pages/admin/OnboardingCenter'
@@ -55,7 +55,7 @@ function App() {
         path="/admin/staff"
         element={
           <ProtectedRoute requiredRole={['school_admin', 'branch_manager']}>
-            <StaffList />
+            <StaffTabs />
           </ProtectedRoute>
         }
       />

@@ -9,6 +9,7 @@ import PhotoCapture from '../../components/PhotoCapture'
 import FingerprintUpload from '../../components/FingerprintUpload'
 import PositionTypeahead from '../../components/PositionTypeahead'
 import StaffEmergencyContactSection from '../../components/StaffEmergencyContactSection'
+import { STAFF_REGISTER_TAB } from '../../constants/nav'
 
 const TITLE_CHOICES = [
   { value: '', label: 'Select...' },
@@ -335,7 +336,7 @@ function StaffRegistrationWizard() {
         <div className="flex items-center gap-2 text-xs text-gray-400 mb-5">
           <Link to="/admin" className="hover:text-navy transition">Dashboard</Link>
           <span className="text-gray-300">›</span>
-          <Link to="/admin/staff" className="hover:text-navy transition">Staff &amp; Teachers</Link>
+          <Link to={STAFF_REGISTER_TAB} className="hover:text-navy transition">Register</Link>
           <span className="text-gray-300">›</span>
           <span className="text-navy font-semibold">Register Staff</span>
         </div>
