@@ -26,6 +26,7 @@ const modules = [
   {
     key: 'staff',
     title: 'Teachers & Staff',
+    desc: 'Manage staff profiles and assign teachers to classes.',
     tags: ['Directory', 'Register', 'Assignment'],
     gradient: 'from-[#15803d] to-[#22c55e]',
     image: classroomImg,

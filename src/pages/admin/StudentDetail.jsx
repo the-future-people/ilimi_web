@@ -2,11 +2,12 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import PortalHeader from '../../components/layout/PortalHeader'
-import { getStudentDetail, changeStudentClass } from '../../api/students'
+import { getStudentDetail, changeStudentClass, updateStudent, uploadStudentFile } from '../../api/students'
 import { getSchoolClassrooms } from '../../api/academics'
 import DocumentsTab from './DocumentsTab'
 import { API_BASE_URL } from '../../config'
 import { STUDENTS_TAB } from '../../constants/nav'
+import PhotoCapture from '../../components/PhotoCapture'
 
 const tabs = [
   { key: 'overview', label: 'Overview' },
@@ -23,6 +24,65 @@ const statusStyles = {
   suspended: 'bg-amber-50 text-amber-700',
 }
 
+// ── Choice maps (mirror apps/students/models.py) ──────────────────────
+// The API returns these fields as raw codes, so both the read-only display
+// and the edit dropdowns key off these. Keep in sync with the model.
+const GENDER_CHOICES = [
+  { value: 'male', label: 'Male' },
+  { value: 'female', label: 'Female' },
+  { value: 'other', label: 'Other' },
+]
+
+const RELIGION_CHOICES = [
+  { value: '', label: '—' },
+  { value: 'christian', label: 'Christian' },
+  { value: 'muslim', label: 'Muslim' },
+  { value: 'traditionalist', label: 'Traditionalist' },
+  { value: 'other', label: 'Other' },
+  { value: 'none', label: 'None / Prefer not to say' },
+]
+
+const BOARDING_CHOICES = [
+  { value: 'day', label: 'Day Student' },
+  { value: 'boarder', label: 'Full Boarder' },
+  { value: 'weekly', label: 'Weekly Boarder' },
+]
+
+const REGION_CHOICES = [
+  { value: '', label: '—' },
+  { value: 'greater_accra', label: 'Greater Accra' },
+  { value: 'ashanti', label: 'Ashanti' },
+  { value: 'western', label: 'Western' },
+  { value: 'western_north', label: 'Western North' },
+  { value: 'central', label: 'Central' },
+  { value: 'eastern', label: 'Eastern' },
+  { value: 'volta', label: 'Volta' },
+  { value: 'oti', label: 'Oti' },
+  { value: 'northern', label: 'Northern' },
+  { value: 'savannah', label: 'Savannah' },
+  { value: 'north_east', label: 'North East' },
+  { value: 'upper_east', label: 'Upper East' },
+  { value: 'upper_west', label: 'Upper West' },
+  { value: 'bono', label: 'Bono' },
+  { value: 'bono_east', label: 'Bono East' },
+  { value: 'ahafo', label: 'Ahafo' },
+  { value: 'other', label: 'Other / Outside Ghana' },
+]
+
+const labelFor = (choices, value) => {
+  const found = choices.find((c) => c.value === value)
+  return found ? found.label : (value || '—')
+}
+
+// Fields the edit form owns. Class is edited separately (the pencil), and
+// health fields live on the Health tab, so neither is here.
+const EDITABLE_FIELDS = [
+  'first_name', 'middle_name', 'last_name', 'date_of_birth', 'gender',
+  'place_of_birth', 'home_town', 'nationality', 'mother_tongue', 'religion',
+  'previous_school', 'boarding_status', 'house_dormitory',
+  'residential_address', 'city', 'region',
+]
+
 function InfoRow({ label, value }) {
   return (
     <div className="py-2.5 border-b border-gray-50 last:border-0">
@@ -31,6 +91,17 @@ function InfoRow({ label, value }) {
     </div>
   )
 }
+
+function EditRow({ label, children }) {
+  return (
+    <div className="py-2 border-b border-gray-50 last:border-0">
+      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1 block">{label}</label>
+      {children}
+    </div>
+  )
+}
+
+const editInput = "w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-gold"
 
 function StudentDetail() {
   const { studentId } = useParams()
@@ -43,18 +114,25 @@ function StudentDetail() {
   const [changingClass, setChangingClass] = useState(false)
   const [classChangeError, setClassChangeError] = useState('')
 
+  // ── Edit mode (Overview) ────────────────────────────────────────────
+  const [editing, setEditing] = useState(false)
+  const [editForm, setEditForm] = useState({})
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  const [saveSuccess, setSaveSuccess] = useState('')
+  const [stagedPhoto, setStagedPhoto] = useState(null)
+  const [showPhotoPicker, setShowPhotoPicker] = useState(false)
 
   const tabScrollRef = useRef(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
 
   const checkTabScroll = () => {
-  const el = tabScrollRef.current
-  if (!el) return
-  console.log('scrollWidth:', el.scrollWidth, 'clientWidth:', el.clientWidth)
-  setCanScrollLeft(el.scrollLeft > 4)
-  setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
-}
+    const el = tabScrollRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 4)
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+  }
 
   const scrollTabs = (direction) => {
     const el = tabScrollRef.current
@@ -97,6 +175,79 @@ function StudentDetail() {
     }
   }
 
+  // ── Edit handlers ───────────────────────────────────────────────────
+  const startEditing = () => {
+    // Seed the form from the current student, editable fields only.
+    const seed = {}
+    for (const field of EDITABLE_FIELDS) {
+      seed[field] = student[field] ?? ''
+    }
+    setEditForm(seed)
+    setSaveError('')
+    setStagedPhoto(null)
+    setEditing(true)
+    setActiveTab('overview')
+  }
+
+  const cancelEditing = () => {
+    setEditing(false)
+    setEditForm({})
+    setSaveError('')
+    setStagedPhoto(null)
+  }
+
+  const updateField = (field, value) => {
+    setEditForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+ const handleSave = async () => {
+    setSaving(true)
+    setSaveError('')
+
+    // Fields and photo go to different endpoints (JSON PATCH vs multipart
+    // upload), so this is two calls behind one button. PATCH first, then
+    // photo, each reported independently so a failure in one doesn't hide
+    // success in the other.
+    const payload = {}
+    for (const field of EDITABLE_FIELDS) {
+      const current = student[field] ?? ''
+      if (editForm[field] !== current) {
+        payload[field] = editForm[field]
+      }
+    }
+
+    const hasFieldChanges = Object.keys(payload).length > 0
+    const hasPhoto = !!stagedPhoto
+
+    if (!hasFieldChanges && !hasPhoto) {
+      setEditing(false)
+      setSaving(false)
+      return
+    }
+
+    try {
+      if (hasFieldChanges) {
+        await updateStudent(studentId, payload)
+      }
+      if (hasPhoto) {
+        await uploadStudentFile(studentId, 'photo', stagedPhoto)
+      }
+      await queryClient.invalidateQueries({ queryKey: ['student-detail', studentId] })
+      await queryClient.invalidateQueries({ queryKey: ['all-students-unfiltered'] })
+      await queryClient.invalidateQueries({ queryKey: ['students'] })
+      setEditing(false)
+      setStagedPhoto(null)
+      setSaveSuccess('Profile updated.')
+      setTimeout(() => setSaveSuccess(''), 3500)
+    } catch (err) {
+      const dataErr = err.response?.data
+      const fieldError = dataErr?.errors && Object.values(dataErr.errors)[0]?.[0]
+      setSaveError(fieldError || dataErr?.message || 'Failed to save changes.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   useEffect(() => {
     checkTabScroll()
     const el = tabScrollRef.current
@@ -108,6 +259,7 @@ function StudentDetail() {
       window.removeEventListener('resize', checkTabScroll)
     }
   }, [student])
+
   const initials = (name) => name ? name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase() : '—'
 
   const formatDate = (dateStr) => {
@@ -178,11 +330,12 @@ function StudentDetail() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
+                  disabled={editing && tab.key !== 'overview'}
                   className={`flex items-center gap-1.5 px-3 sm:px-4 py-3.5 sm:py-4 text-xs sm:text-sm font-semibold border-b-2 whitespace-nowrap transition ${
                     activeTab === tab.key
                       ? 'border-gold text-navy'
                       : 'border-transparent text-gray-400 hover:text-navy'
-                  }`}
+                  } ${editing && tab.key !== 'overview' ? 'opacity-40 cursor-not-allowed' : ''}`}
                 >
                   {tab.label}
                 </button>
@@ -196,11 +349,27 @@ function StudentDetail() {
         <div className="bg-white rounded-b-2xl shadow-lg -mt-px">
           {/* Profile header */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 sm:p-6 border-b border-gray-100">
-            <div className="w-16 h-16 rounded-2xl bg-navy text-white text-lg font-bold flex items-center justify-center overflow-hidden flex-shrink-0">
-              {student.photo ? (
-                <img src={`${API_BASE_URL}${student.photo}`} alt="" className="w-full h-full object-cover" />
-              ) : (
-                initials(student.full_name)
+            <div className="relative w-16 h-16 flex-shrink-0">
+              <div className="w-16 h-16 rounded-2xl bg-navy text-white text-lg font-bold flex items-center justify-center overflow-hidden">
+                {stagedPhoto ? (
+                  <img src={URL.createObjectURL(stagedPhoto)} alt="" className="w-full h-full object-cover" />
+                ) : student.photo ? (
+                  <img src={`${API_BASE_URL}${student.photo}`} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  initials(student.full_name)
+                )}
+              </div>
+              {editing && (
+                <button
+                  onClick={() => setShowPhotoPicker(true)}
+                  className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-gold text-navy flex items-center justify-center shadow-md hover:bg-gold-light transition"
+                  title="Change photo"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </button>
               )}
             </div>
             <div className="flex-1 min-w-0">
@@ -210,7 +379,8 @@ function StudentDetail() {
                 <span className="text-gray-200">·</span>
                 <button
                   onClick={() => { setSelectedClassroom(student.current_class || ''); setShowClassModal(true); }}
-                  className="text-xs text-blue-600 font-medium hover:underline flex items-center gap-1"
+                  disabled={editing}
+                  className="text-xs text-blue-600 font-medium hover:underline flex items-center gap-1 disabled:opacity-40 disabled:no-underline"
                 >
                   {student.classroom_name || 'Unassigned'}
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -222,38 +392,138 @@ function StudentDetail() {
                 </span>
               </div>
             </div>
-            <button className="flex items-center gap-2 bg-navy text-white text-xs font-bold px-4 py-2.5 rounded-lg hover:bg-navy-light transition whitespace-nowrap">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              Edit Profile
-            </button>
+            {!editing ? (
+              <button
+                onClick={startEditing}
+                className="flex items-center gap-2 bg-navy text-white text-xs font-bold px-4 py-2.5 rounded-lg hover:bg-navy-light transition whitespace-nowrap"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit Profile
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={cancelEditing}
+                  disabled={saving}
+                  className="text-xs font-bold text-gray-500 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex items-center gap-2 bg-gold text-navy text-xs font-bold px-4 py-2.5 rounded-lg hover:bg-gold-light transition whitespace-nowrap disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            )}
           </div>
 
+          {saveError && (
+            <div className="mx-5 sm:mx-6 mt-4 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+              {saveError}
+            </div>
+          )}
+
           {/* Overview Tab */}
-          {activeTab === 'overview' && (
+          {activeTab === 'overview' && !editing && (
             <div className="p-5 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-x-8">
               <div>
                 <div className="text-xs font-bold text-navy uppercase tracking-wide mb-2">Personal Information</div>
                 <InfoRow label="Full Name" value={student.full_name} />
                 <InfoRow label="Date of Birth" value={formatDate(student.date_of_birth)} />
-                <InfoRow label="Gender" value={student.gender} />
+                <InfoRow label="Gender" value={labelFor(GENDER_CHOICES, student.gender)} />
                 <InfoRow label="Place of Birth" value={student.place_of_birth} />
                 <InfoRow label="Home Town" value={student.home_town} />
                 <InfoRow label="Nationality" value={student.nationality} />
                 <InfoRow label="Mother Tongue" value={student.mother_tongue} />
-                <InfoRow label="Religion" value={student.religion} />
+                <InfoRow label="Religion" value={labelFor(RELIGION_CHOICES, student.religion)} />
               </div>
               <div>
-                <div className="text-xs font-bold text-navy uppercase tracking-wide mb-2 mt-6 md:mt-0">Academic & Address</div>
+                <div className="text-xs font-bold text-navy uppercase tracking-wide mb-2 mt-6 md:mt-0">Academic &amp; Address</div>
                 <InfoRow label="Class" value={student.classroom_name} />
                 <InfoRow label="Enrollment Date" value={formatDate(student.enrollment_date)} />
                 <InfoRow label="Previous School" value={student.previous_school} />
-                <InfoRow label="Boarding Status" value={student.boarding_status} />
+                <InfoRow label="Boarding Status" value={labelFor(BOARDING_CHOICES, student.boarding_status)} />
                 <InfoRow label="House / Dormitory" value={student.house_dormitory} />
                 <InfoRow label="Residential Address" value={student.residential_address} />
                 <InfoRow label="City" value={student.city} />
-                <InfoRow label="Region" value={student.region} />
+                <InfoRow label="Region" value={labelFor(REGION_CHOICES, student.region)} />
+              </div>
+            </div>
+          )}
+
+          {/* Overview Tab — edit mode */}
+          {activeTab === 'overview' && editing && (
+            <div className="p-5 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-x-8">
+              <div>
+                <div className="text-xs font-bold text-navy uppercase tracking-wide mb-2">Personal Information</div>
+                <EditRow label="First Name">
+                  <input className={editInput} value={editForm.first_name} onChange={(e) => updateField('first_name', e.target.value)} />
+                </EditRow>
+                <EditRow label="Middle Name">
+                  <input className={editInput} value={editForm.middle_name} onChange={(e) => updateField('middle_name', e.target.value)} />
+                </EditRow>
+                <EditRow label="Last Name">
+                  <input className={editInput} value={editForm.last_name} onChange={(e) => updateField('last_name', e.target.value)} />
+                </EditRow>
+                <EditRow label="Date of Birth">
+                  <input type="date" className={editInput} value={editForm.date_of_birth || ''} onChange={(e) => updateField('date_of_birth', e.target.value)} />
+                </EditRow>
+                <EditRow label="Gender">
+                  <select className={editInput} value={editForm.gender} onChange={(e) => updateField('gender', e.target.value)}>
+                    {GENDER_CHOICES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                </EditRow>
+                <EditRow label="Place of Birth">
+                  <input className={editInput} value={editForm.place_of_birth} onChange={(e) => updateField('place_of_birth', e.target.value)} />
+                </EditRow>
+                <EditRow label="Home Town">
+                  <input className={editInput} value={editForm.home_town} onChange={(e) => updateField('home_town', e.target.value)} />
+                </EditRow>
+                <EditRow label="Nationality">
+                  <input className={editInput} value={editForm.nationality} onChange={(e) => updateField('nationality', e.target.value)} />
+                </EditRow>
+                <EditRow label="Mother Tongue">
+                  <input className={editInput} value={editForm.mother_tongue} onChange={(e) => updateField('mother_tongue', e.target.value)} />
+                </EditRow>
+                <EditRow label="Religion">
+                  <select className={editInput} value={editForm.religion} onChange={(e) => updateField('religion', e.target.value)}>
+                    {RELIGION_CHOICES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                </EditRow>
+              </div>
+              <div>
+                <div className="text-xs font-bold text-navy uppercase tracking-wide mb-2 mt-6 md:mt-0">Academic &amp; Address</div>
+                <div className="py-2 border-b border-gray-50">
+                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Class</div>
+                  <div className="text-sm text-gray-400">{student.classroom_name || 'Unassigned'} <span className="text-gray-300">· edit via the class link above</span></div>
+                </div>
+                <EditRow label="Previous School">
+                  <input className={editInput} value={editForm.previous_school} onChange={(e) => updateField('previous_school', e.target.value)} />
+                </EditRow>
+                <EditRow label="Boarding Status">
+                  <select className={editInput} value={editForm.boarding_status} onChange={(e) => updateField('boarding_status', e.target.value)}>
+                    {BOARDING_CHOICES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                </EditRow>
+                <EditRow label="House / Dormitory">
+                  <input className={editInput} value={editForm.house_dormitory} onChange={(e) => updateField('house_dormitory', e.target.value)} />
+                </EditRow>
+                <EditRow label="Residential Address">
+                  <textarea rows={2} className={editInput} value={editForm.residential_address} onChange={(e) => updateField('residential_address', e.target.value)} />
+                </EditRow>
+                <EditRow label="City">
+                  <input className={editInput} value={editForm.city} onChange={(e) => updateField('city', e.target.value)} />
+                </EditRow>
+                <EditRow label="Region">
+                  <select className={editInput} value={editForm.region} onChange={(e) => updateField('region', e.target.value)}>
+                    {REGION_CHOICES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                </EditRow>
               </div>
             </div>
           )}
@@ -391,6 +661,39 @@ function StudentDetail() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Photo picker (edit mode) */}
+      {showPhotoPicker && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowPhotoPicker(false)}>
+          <div className="bg-white rounded-2xl p-5 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="font-serif text-lg font-bold text-navy mb-1">Change Photo</div>
+            <div className="text-xs text-gray-400 mb-4">The new photo saves when you save the profile.</div>
+            <PhotoCapture value={stagedPhoto} onChange={setStagedPhoto} allowCamera />
+            <div className="flex items-center gap-2 mt-4">
+              <button
+                onClick={() => { setStagedPhoto(null); }}
+                className="flex-1 bg-gray-100 text-gray-600 text-sm font-bold py-2.5 rounded-lg hover:bg-gray-200 transition"
+              >
+                Clear
+              </button>
+              <button
+                onClick={() => setShowPhotoPicker(false)}
+                className="flex-1 bg-navy text-white text-sm font-bold py-2.5 rounded-lg hover:bg-navy-light transition"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      
+      {/* Success toast */}
+      {saveSuccess && (
+        <div className="fixed bottom-6 right-6 bg-green-600 text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-lg z-50">
+          {saveSuccess}
         </div>
       )}
     </div>

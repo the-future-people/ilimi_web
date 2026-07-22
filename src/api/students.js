@@ -30,6 +30,11 @@ export async function bulkChangeStudentClass(payload) {
   return response.data
 }
 
+export async function updateStudent(studentId, payload) {
+  const response = await api.patch(`/students/${studentId}/`, payload)
+  return response.data
+}
+
 export async function uploadStudentFile(studentId, field, file) {
   const formData = new FormData()
   formData.append('file', file)
