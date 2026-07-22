@@ -7,6 +7,7 @@ import { enrolStudent, getAllStudents, uploadStudentFile, uploadGuardianFile } f
 import PhotoCapture from '../../components/PhotoCapture'
 import FingerprintUpload from '../../components/FingerprintUpload'
 import GuardianSection from '../../components/GuardianSection'
+import { ADMISSIONS_TAB } from '../../constants/nav'
 
 const GENDER_CHOICES = [
   { value: 'male', label: 'Male' },
@@ -437,7 +438,7 @@ const handleSubmit = async () => {
         <div className="flex items-center gap-2 text-xs text-gray-400 mb-5">
           <Link to="/admin" className="hover:text-navy transition">Dashboard</Link>
           <span className="text-gray-300">›</span>
-          <Link to="/admin/students" className="hover:text-navy transition">Students &amp; Admissions</Link>
+          <Link to="/admin/students?tab=admissions" className="hover:text-navy transition">Admissions</Link>
           <span className="text-gray-300">›</span>
           <span className="text-navy font-semibold">Enrol New Student</span>
         </div>

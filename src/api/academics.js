@@ -34,3 +34,42 @@ export async function getSubjects() {
   const response = await api.get('/academics/subjects/')
   return response.data
 }
+
+// ── Academic year setup ───────────────────────────────────────────────
+
+export const getSetupStatus = async () => {
+  const res = await api.get('/academics/years/setup/')
+  return res.data
+}
+
+export const getCalendarTemplates = async () => {
+  const res = await api.get('/academics/calendar-templates/')
+  return res.data
+}
+
+export const setupAcademicYear = async (payload) => {
+  const res = await api.post('/academics/years/setup/', payload)
+  return res.data
+}
+
+// ── Classrooms ────────────────────────────────────────────────────────
+
+export const getClassrooms = async (yearId) => {
+  const res = await api.get(`/academics/years/${yearId}/classrooms/`)
+  return res.data
+}
+
+export const createClassroom = async (yearId, payload) => {
+  const res = await api.post(`/academics/years/${yearId}/classrooms/`, payload)
+  return res.data
+}
+
+export const updateClassroom = async (classroomId, payload) => {
+  const res = await api.patch(`/academics/classrooms/${classroomId}/`, payload)
+  return res.data
+}
+
+export const getClassLevels = async () => {
+  const res = await api.get('/academics/class-levels/')
+  return res.data
+}

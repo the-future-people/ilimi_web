@@ -15,8 +15,8 @@ import libraryImg from '../../assets/domains/library.png'
 const modules = [
   {
     key: 'students',
-    title: 'Students & Admissions',
-    desc: 'Enrol new students and manage existing records.',
+    title: 'Students, Classes & Admissions',
+    desc: 'Enrol students, set up classes, and manage records.',
     tags: ['Enrolment', 'Profiles', 'Classes'],
     gradient: 'from-[#1e40af] to-[#3b82f6]',
     image: admissionsImg,
@@ -81,8 +81,8 @@ const tourSteps = [
   },
   {
     target: '[data-tour="students"]',
-    content: "Start here to enrol your first students and manage existing records.",
-    title: 'Students & Admissions',
+    content: "Enrol students, create your classes, and manage records — all here.",
+    title: 'Students, Classes & Admissions',
   },
   {
     target: '[data-tour="staff"]',

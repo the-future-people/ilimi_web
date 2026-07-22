@@ -6,6 +6,7 @@ import { getStudentDetail, changeStudentClass } from '../../api/students'
 import { getSchoolClassrooms } from '../../api/academics'
 import DocumentsTab from './DocumentsTab'
 import { API_BASE_URL } from '../../config'
+import { STUDENTS_TAB } from '../../constants/nav'
 
 const tabs = [
   { key: 'overview', label: 'Overview' },
@@ -146,7 +147,7 @@ function StudentDetail() {
           <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-gray-400 pt-3 sm:pt-4 pb-2.5 sm:pb-3 overflow-x-auto no-scrollbar whitespace-nowrap">
             <Link to="/admin" className="hover:text-navy transition">Dashboard</Link>
             <span className="text-gray-300">›</span>
-            <Link to="/admin/students" className="hover:text-navy transition">Students & Admissions</Link>
+            <Link to={STUDENTS_TAB} className="hover:text-navy transition">Students</Link>
             <span className="text-gray-300">›</span>
             <span className="text-navy font-semibold">{student.full_name}</span>
           </div>

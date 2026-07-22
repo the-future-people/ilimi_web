@@ -7,7 +7,7 @@ import TeacherPortal from './pages/teacher/TeacherPortal'
 import Classroom from './pages/teacher/Classroom'
 import ClassDetail from './pages/teacher/ClassDetail'
 import AdminPortal from './pages/admin/AdminPortal'
-import StudentList from './pages/admin/StudentList'
+import StudentsClassesAdmissions from './pages/admin/StudentsClassesAdmissions'
 import StudentDetail from './pages/admin/StudentDetail'
 import EnrolWizard from './pages/admin/EnrolWizard'
 import Register from './pages/Register'
@@ -80,7 +80,7 @@ function App() {
         path="/admin/students"
         element={
           <ProtectedRoute requiredRole={['school_admin', 'branch_manager']}>
-            <StudentList />
+            <StudentsClassesAdmissions />
           </ProtectedRoute>
         }
       />

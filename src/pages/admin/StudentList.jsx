@@ -151,7 +151,7 @@ function GroupHeaderMobile({ label, count }) {
   )
 }
 
-function StudentList() {
+function StudentList({ embedded = false }) {
   const { activeMember } = useAuth()
   const queryClient = useQueryClient()
 
@@ -298,50 +298,28 @@ function StudentList() {
   }, [totalPages, page])
 
   return (
-    <div className="min-h-screen">
-      <PortalHeader />
+    <div className={embedded ? '' : 'min-h-screen'}>
+      {!embedded && <PortalHeader />}
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-8">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-xs text-gray-400 mb-5">
-          <Link to="/admin" className="hover:text-navy transition">Dashboard</Link>
-          <span className="text-gray-300">›</span>
-          <span className="text-navy font-semibold">Students &amp; Admissions</span>
-        </div>
+      <div className={embedded ? '' : 'max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-8'}>
+        {!embedded && (
+          <>
+            {/* Breadcrumb */}
+            <div className="flex items-center gap-2 text-xs text-gray-400 mb-5">
+              <Link to="/admin" className="hover:text-navy transition">Dashboard</Link>
+              <span className="text-gray-300">›</span>
+              <span className="text-navy font-semibold">Students &amp; Admissions</span>
+            </div>
 
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-navy">Students &amp; Admissions</h1>
-            <p className="text-sm text-gray-400 mt-1">
-              {activeMember?.school_name} · {totalCount} student{totalCount !== 1 ? 's' : ''} on record
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Link to="/admin/students/documents" className="flex items-center gap-2 bg-white text-navy border border-gray-200 text-sm font-bold pl-2 pr-4 py-2 rounded-lg hover:border-gray-300 hover:shadow-sm transition whitespace-nowrap">
-              <span className="w-7 h-7 rounded-md bg-blue-50 flex items-center justify-center flex-shrink-0">
-                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </span>
-              Student Documentation
-            </Link>
-            <Link to="/admin/students/onboarding" className="flex items-center gap-2 bg-white text-navy border border-gray-200 text-sm font-bold pl-2 pr-4 py-2 rounded-lg hover:border-gray-300 hover:shadow-sm transition whitespace-nowrap">
-              <span className="w-7 h-7 rounded-md bg-amber-50 flex items-center justify-center flex-shrink-0">
-                <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </span>
-              Onboarding Center
-            </Link>
-            <Link to="/admin/students/enrol" className="flex items-center gap-2 bg-navy text-white text-sm font-bold px-5 py-2.5 rounded-lg hover:bg-navy-light transition whitespace-nowrap">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-              </svg>
-              Enrol New Student
-            </Link>
-          </div>
-        </div>
+            {/* Header */}
+            <div className="mb-6">
+              <h1 className="font-serif text-2xl sm:text-3xl font-bold text-navy">Students &amp; Admissions</h1>
+              <p className="text-sm text-gray-400 mt-1">
+                {activeMember?.school_name} · {totalCount} student{totalCount !== 1 ? 's' : ''} on record
+              </p>
+            </div>
+          </>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">

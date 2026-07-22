@@ -5,6 +5,7 @@ import { getAllStudents } from '../../api/students'
 import { getDocumentTemplates, getGeneratedDocuments, previewDocument, generateDocument } from '../../api/documents'
 import PortalHeader from '../../components/layout/PortalHeader'
 import { API_BASE_URL } from '../../config'
+import { ADMISSIONS_TAB } from '../../constants/nav'
 
 const DOCUMENT_TYPE_LABELS = {
   recommendation_letter: 'Recommendation Letters',
@@ -381,7 +382,7 @@ export default function StudentDocumentationHub() {
         <div className="flex items-center gap-2 text-xs text-gray-400 mb-5">
           <Link to="/admin" className="hover:text-navy transition">Dashboard</Link>
           <span className="text-gray-300">›</span>
-          <Link to="/admin/students" className="hover:text-navy transition">Students &amp; Admissions</Link>
+          <Link to={ADMISSIONS_TAB} className="hover:text-navy transition">Admissions</Link>
           <span className="text-gray-300">›</span>
           <span className="text-navy font-semibold">Student Documentation</span>
         </div>
