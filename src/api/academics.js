@@ -73,3 +73,23 @@ export const getClassLevels = async () => {
   const res = await api.get('/academics/class-levels/')
   return res.data
 }
+
+export const getAssignments = async (params = {}) => {
+  const res = await api.get('/academics/assignments/', { params })
+  return res.data
+}
+
+export const createAssignment = async (payload) => {
+  const res = await api.post('/academics/assignments/', payload)
+  return res.data
+}
+
+export const updateAssignment = async (id, payload) => {
+  const res = await api.patch(`/academics/assignments/${id}/`, payload)
+  return res.data
+}
+
+export const deleteAssignment = async (id) => {
+  const res = await api.delete(`/academics/assignments/${id}/`)
+  return res.data
+}

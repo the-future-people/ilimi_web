@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext'
 import { getAllStaff } from '../../api/staff'
 import StaffList from './StaffList'
 import StaffRegisterTab from './StaffRegisterTab'
+import AssignmentTab from './AssignmentTab'
 
 const TABS = [
   { key: 'directory', label: 'Directory' },
@@ -79,7 +80,7 @@ function StaffTabs() {
 
         {tab === 'directory' && <StaffList embedded />}
         {tab === 'register' && <StaffRegisterTab />}
-        {tab === 'assignment' && <AssignmentComingSoon />}
+        {tab === 'assignment' && <AssignmentTab />}
       </div>
     </div>
   )
