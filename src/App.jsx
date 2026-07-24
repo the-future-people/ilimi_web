@@ -19,9 +19,9 @@ import OnboardingCenter from './pages/admin/OnboardingCenter'
 import CommunicationsCenter from './pages/admin/CommunicationsCenter'
 import LandingPage from './pages/public/LandingPage'
 import { useAuth } from './context/AuthContext'
-
+import AccountantPortal from './pages/accountant/AccountantPortal'
+import CollectPayment from './pages/accountant/CollectPayment'
 const ADMIN_ROLES = ['school_admin', 'branch_manager']
-
 /**
  * The public landing page lives at "/". A logged-in visitor hitting the
  * marketing page is sent to the role redirect instead, so returning users
@@ -41,6 +41,14 @@ function App() {
     <Routes>
       {/* ── Public ─────────────────────────────────────────────── */}
       <Route path="/" element={<LandingOrRedirect />} />
+      <Route
+        path="/accountant"
+        element={
+          <ProtectedRoute requiredRole="accountant">
+            <AccountantPortal />
+          </ProtectedRoute>
+        }
+      />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/select-membership" element={<SelectMembership />} />
@@ -53,6 +61,14 @@ function App() {
         element={
           <ProtectedRoute requiredRole={ADMIN_ROLES}>
             <AdminPortal />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/accountant/collect"
+        element={
+          <ProtectedRoute requiredRole="accountant">
+            <CollectPayment />
           </ProtectedRoute>
         }
       />

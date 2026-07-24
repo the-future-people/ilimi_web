@@ -7,6 +7,7 @@ const roleRoutes = {
   branch_manager: '/admin',
   teacher: '/teacher',
   accountant: '/accountant',
+  registrar: '/registrar',
   receptionist: '/receptionist',
   parent: '/parent',
 }
