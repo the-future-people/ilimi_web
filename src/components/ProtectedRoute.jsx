@@ -1,7 +1,9 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { hasDomainAccess } from '../constants/permissions'
 
-function ProtectedRoute({ children, requiredRole }) {
+
+function ProtectedRoute({ children, requiredRole, requiredDomain, requiredLevel = 'full' }) {
   const { user, activeMember, loading } = useAuth()
 
   if (loading) {
@@ -26,7 +28,9 @@ function ProtectedRoute({ children, requiredRole }) {
       return <Navigate to="/redirect" replace />
     }
   }
-
+  if (requiredDomain && !hasDomainAccess(activeMember.role, requiredDomain, requiredLevel)) {
+    return <Navigate to="/redirect" replace />
+  }
   return children
 }
 
