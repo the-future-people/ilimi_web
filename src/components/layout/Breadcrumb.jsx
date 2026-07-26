@@ -13,15 +13,15 @@ function Breadcrumb({ items }) {
           {item.href ? (
             <Link to={item.href} className="flex items-center gap-1.5 text-gray-400 hover:text-navy transition">
               {item.icon}
-              {item.label}
+              <span className="hidden sm:inline">{item.label}</span>
             </Link>
           ) : (
             <span
-              className="flex items-center gap-1.5 font-semibold px-3 py-1 rounded-full"
+              className="flex items-center gap-1.5 font-semibold px-3 py-1 rounded-full min-w-0"
               style={{ background: '#1a2b4a', color: '#c9a227' }}
             >
               {item.icon}
-              {item.label}
+              <span className="truncate max-w-[140px] sm:max-w-none">{item.label}</span>
             </span>
           )}
         </div>
