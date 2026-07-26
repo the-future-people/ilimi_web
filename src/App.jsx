@@ -151,7 +151,7 @@ function App() {
       <Route
         path="/admin/communications"
         element={
-          <ProtectedRoute requiredRole={ADMIN_ROLES}>
+          <ProtectedRoute requiredRole={[...ADMIN_ROLES, 'registrar']}>
             <CommunicationsCenter />
           </ProtectedRoute>
         }

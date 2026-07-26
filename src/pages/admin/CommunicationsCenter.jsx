@@ -6,12 +6,13 @@ import PortalHeader from '../../components/layout/PortalHeader'
 import { useAuth } from '../../context/AuthContext'
 import { getSchoolClassrooms } from '../../api/academics'
 import { getAllStudents } from '../../api/students'
+import { getAllStaff } from '../../api/staff'
 import {
   getExcursions, createExcursion, requestExcursionConsent,
   getConsentRequests, createConsentRequest,
   generateConsentPdf, emailConsentPdf, getConsentWhatsAppLink,
+  getMessages, composeMessage, approveMessage, declineMessage,
 } from '../../api/communications'
-
 const inputClass = "px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-gold"
 const PAGE_SIZE = 15
 
@@ -37,9 +38,9 @@ const STATUS_STYLES = {
 }
 
 const TABS = [
-  { key: 'communications', label: 'Communications' },
-  { key: 'consents', label: 'Consents' },
-  { key: 'authorization', label: 'Authorization' },
+  { key: 'communications', label: 'Communications', icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' },
+  { key: 'consents', label: 'Consents', icon: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+  { key: 'authorization', label: 'Authorization', icon: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z M16.5 3.75V6h-9V3.75M12 12v6' },
 ]
 
 function formatDate(dateStr) {
@@ -281,18 +282,385 @@ function GroupedRequestList({ requests, onGeneratePdf, onEmail, onWhatsApp, acti
   )
 }
 
-function CommunicationsPlaceholder() {
+const AUDIENCE_OPTIONS = [
+  { value: 'single_guardian', label: "One Parent", needsTarget: 'student' },
+  { value: 'single_staff', label: 'One Staff Member', needsTarget: 'staff' },
+  { value: 'class_guardians', label: "A Class's Parents", needsTarget: 'classroom' },
+  { value: 'all_staff', label: 'All Staff', needsTarget: null },
+  { value: 'all_guardians', label: 'All Parents (Broadcast)', needsTarget: null },
+]
+
+function StudentPicker({ value, onSelect }) {
+  const [query, setQuery] = useState('')
+  const { data } = useQuery({
+    queryKey: ['comms-student-search', query],
+    queryFn: () => getAllStudents({ search: query }),
+    enabled: query.length > 1,
+  })
+  const results = data?.data?.students || []
+
+  if (value) {
+    return (
+      <div className="flex items-center justify-between border border-gray-200 rounded-lg px-3 py-2.5">
+        <span className="text-sm text-navy font-semibold">{value.full_name}</span>
+        <button onClick={() => onSelect(null)} className="text-xs text-red-500 hover:underline">Change</button>
+      </div>
+    )
+  }
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-10 flex flex-col items-center text-center">
-      <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center mb-4">
-        <svg className="w-7 h-7 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+    <div className="relative">
+      <input className={inputClass + ' w-full'} placeholder="Search student by name..." value={query} onChange={(e) => setQuery(e.target.value)} />
+      {results.length > 0 && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-40 overflow-y-auto">
+          {results.map((s) => (
+            <button key={s.id} type="button" onClick={() => onSelect(s)} className="w-full text-left px-3 py-2 text-sm text-navy hover:bg-gray-50 transition">
+              {s.full_name} <span className="text-gray-400 text-xs">({s.student_id})</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function StaffPicker({ value, onSelect, staff }) {
+  if (value) {
+    return (
+      <div className="flex items-center justify-between border border-gray-200 rounded-lg px-3 py-2.5">
+        <span className="text-sm text-navy font-semibold">{value.full_name}</span>
+        <button onClick={() => onSelect(null)} className="text-xs text-red-500 hover:underline">Change</button>
+      </div>
+    )
+  }
+  return (
+    <select className={inputClass + ' w-full'} value="" onChange={(e) => {
+      const s = staff.find((m) => String(m.id) === e.target.value)
+      if (s) onSelect(s)
+    }}>
+      <option value="">Select staff member...</option>
+      {staff.map((s) => <option key={s.id} value={s.id}>{s.full_name}</option>)}
+    </select>
+  )
+}
+
+const CHANNEL_ICONS = {
+  broadcast: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z',
+  direct: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
+  class: 'M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z',
+  parent: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
+  staff: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
+}
+
+function ChannelTile({ label, desc, icon, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="text-left bg-white rounded-2xl p-5 flex flex-col gap-3 hover:-translate-y-1 hover:shadow-md transition"
+      style={{ outline: '2px dashed rgba(201,162,39,0.4)', outlineOffset: '6px' }}
+    >
+      <div className="w-10 h-10 rounded-xl bg-navy/5 flex items-center justify-center">
+        <svg className="w-5 h-5 text-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d={icon} />
         </svg>
       </div>
-      <div className="font-serif text-lg font-bold text-navy mb-1">Coming Soon</div>
-      <p className="text-sm text-gray-400 max-w-sm">
-        Send broadcast announcements to the whole school, target a specific class, or message an individual parent — via SMS, WhatsApp, or email.
-      </p>
+      <div>
+        <div className="text-sm font-bold text-navy">{label}</div>
+        <div className="text-xs text-gray-400 mt-0.5">{desc}</div>
+      </div>
+    </button>
+  )
+}
+
+function RailIcon({ channelKey, active, icon, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition ${
+        active ? 'bg-gold/15 border border-gold/40' : 'border border-gray-200 hover:border-gray-300'
+      }`}
+    >
+      <svg className={`w-[19px] h-[19px] ${active ? 'text-amber-700' : 'text-gray-300'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" d={icon} />
+      </svg>
+    </button>
+  )
+}
+
+function MessageComposer({ isAdminTier }) {
+  const queryClient = useQueryClient()
+
+  const [channel, setChannel] = useState(null) // 'broadcast' | 'direct' | 'class'
+  const [audienceType, setAudienceType] = useState(null)
+  const [selectedStudent, setSelectedStudent] = useState(null)
+  const [selectedStaff, setSelectedStaff] = useState(null)
+  const [selectedClassroom, setSelectedClassroom] = useState('')
+  const [title, setTitle] = useState('')
+  const [body, setBody] = useState('')
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+
+  const { data: classroomsData } = useQuery({ queryKey: ['school-classrooms'], queryFn: getSchoolClassrooms })
+  const classrooms = classroomsData?.data?.classrooms || []
+
+  const { data: staffData } = useQuery({ queryKey: ['all-staff-unfiltered'], queryFn: () => getAllStaff({}) })
+  const staffList = staffData?.data?.staff || []
+
+  const resetDeeper = () => {
+    setAudienceType(null)
+    setSelectedStudent(null); setSelectedStaff(null); setSelectedClassroom('')
+    setTitle(''); setBody(''); setError('')
+  }
+
+  const switchChannel = (next) => {
+    setChannel(next)
+    resetDeeper()
+    if (next === 'class') setAudienceType('class_guardians')
+  }
+
+  const startOver = () => {
+    setChannel(null)
+    resetDeeper()
+  }
+
+  const handleSubmit = async () => {
+    setError('')
+    if (!title.trim() || !body.trim()) return setError('Title and message body are required.')
+    if (audienceType === 'single_guardian' && !selectedStudent) return setError('Select a student.')
+    if (audienceType === 'single_staff' && !selectedStaff) return setError('Select a staff member.')
+    if (audienceType === 'class_guardians' && !selectedClassroom) return setError('Select a class.')
+
+    setSending(true)
+    try {
+      const payload = { title, body, audience_type: audienceType }
+      if (selectedStudent) payload.target_student = selectedStudent.id
+      if (selectedStaff) payload.target_staff_member = selectedStaff.id
+      if (selectedClassroom) payload.target_classroom = selectedClassroom
+
+      const res = await composeMessage(payload)
+      setSuccess(res.message)
+      resetDeeper()
+      queryClient.invalidateQueries({ queryKey: ['messages'] })
+      setTimeout(() => setSuccess(''), 4000)
+    } catch (err) {
+      const data = err.response?.data
+      const fieldError = data?.errors && Object.values(data.errors)[0]?.[0]
+      setError(fieldError || data?.message || 'Could not send message.')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const readyForForm = audienceType && (
+    (audienceType === 'single_guardian' && selectedStudent) ||
+    (audienceType === 'single_staff' && selectedStaff) ||
+    (audienceType === 'class_guardians' && selectedClassroom) ||
+    audienceType === 'all_staff' || audienceType === 'all_guardians'
+  )
+
+  // ── Before any channel picked — full-width horizontal row ────────────
+  if (!channel) {
+    return (
+      <div>
+        <div className="text-sm font-bold text-navy mb-1">What kind of message?</div>
+        <p className="text-xs text-gray-400 mb-4">Pick how this message reaches people.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <ChannelTile label="Broadcast" desc="Everyone in a category" icon={CHANNEL_ICONS.broadcast} onClick={() => switchChannel('broadcast')} />
+          <ChannelTile label="Direct Message" desc="One specific person" icon={CHANNEL_ICONS.direct} onClick={() => switchChannel('direct')} />
+          <ChannelTile label="Class" desc="One class's parents" icon={CHANNEL_ICONS.class} onClick={() => switchChannel('class')} />
+        </div>
+      </div>
+    )
+  }
+
+  // ── After a channel is picked — collapses to a rail, content fills the rest ──
+  const CHANNELS = [
+    { key: 'broadcast', icon: CHANNEL_ICONS.broadcast },
+    { key: 'direct', icon: CHANNEL_ICONS.direct },
+    { key: 'class', icon: CHANNEL_ICONS.class },
+  ]
+
+  return (
+    <div className="flex flex-col sm:grid sm:grid-cols-[56px_1fr] gap-4 transition-all duration-300">
+      <div className="flex flex-row sm:flex-col gap-2">
+        {CHANNELS.map((c) => (
+          <RailIcon key={c.key} icon={c.icon} active={channel === c.key} onClick={() => switchChannel(c.key)} />
+        ))}
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6">
+        {channel === 'broadcast' && !audienceType && (
+          <>
+            <div className="text-sm font-bold text-navy mb-4">Broadcast to...</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <ChannelTile label="All Parents" desc="Every guardian on record" icon={CHANNEL_ICONS.parent} onClick={() => setAudienceType('all_guardians')} />
+              <ChannelTile label="All Staff" desc="Every active staff member" icon={CHANNEL_ICONS.staff} onClick={() => setAudienceType('all_staff')} />
+            </div>
+          </>
+        )}
+
+        {channel === 'direct' && !audienceType && (
+          <>
+            <div className="text-sm font-bold text-navy mb-4">Message...</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <ChannelTile label="A Parent" desc="Search a student, message their guardian" icon={CHANNEL_ICONS.parent} onClick={() => setAudienceType('single_guardian')} />
+              <ChannelTile label="A Staff Member" desc="Pick from your staff list" icon={CHANNEL_ICONS.staff} onClick={() => setAudienceType('single_staff')} />
+            </div>
+          </>
+        )}
+
+        {audienceType && (
+          <div className="flex flex-col gap-3">
+            {(channel !== 'class') && (
+              <button onClick={() => setAudienceType(channel === 'class' ? 'class_guardians' : null)} className="text-xs font-bold text-gray-400 hover:text-navy transition self-start">
+                ← Back
+              </button>
+            )}
+
+            <p className="text-xs text-gray-400">
+              {isAdminTier ? 'Sends immediately via SMS.' : "Sends to your school admin for approval before going out."}
+            </p>
+
+            {audienceType === 'single_guardian' && (
+              <div>
+                <label className="text-xs font-semibold text-gray-500 mb-1.5 block">Student</label>
+                <StudentPicker value={selectedStudent} onSelect={setSelectedStudent} />
+              </div>
+            )}
+            {audienceType === 'single_staff' && (
+              <div>
+                <label className="text-xs font-semibold text-gray-500 mb-1.5 block">Staff Member</label>
+                <StaffPicker value={selectedStaff} onSelect={setSelectedStaff} staff={staffList} />
+              </div>
+            )}
+            {audienceType === 'class_guardians' && (
+              <div>
+                <label className="text-xs font-semibold text-gray-500 mb-1.5 block">Class</label>
+                <select className={inputClass + ' w-full'} value={selectedClassroom} onChange={(e) => setSelectedClassroom(e.target.value)}>
+                  <option value="">Select class...</option>
+                  {classrooms.map((c) => <option key={c.id} value={c.id}>{c.full_name}</option>)}
+                </select>
+              </div>
+            )}
+
+            {readyForForm && (
+              <>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 mb-1.5 block">Title (internal label)</label>
+                  <input className={inputClass + ' w-full'} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Term closing reminder" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 mb-1.5 block">Message</label>
+                  <textarea rows={4} className={inputClass + ' w-full'} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Type your SMS message..." />
+                </div>
+
+                {error && <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</div>}
+                {success && <div className="text-xs text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">{success}</div>}
+
+                <button onClick={handleSubmit} disabled={sending} className="bg-navy text-white text-sm font-bold py-2.5 rounded-lg hover:bg-navy-light transition disabled:opacity-50">
+                  {sending ? 'Sending...' : isAdminTier ? 'Send Message' : 'Send for Approval'}
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function PendingApprovalQueue() {
+  const queryClient = useQueryClient()
+  const [declining, setDeclining] = useState(null)
+  const [declineReason, setDeclineReason] = useState('')
+  const [actioning, setActioning] = useState(null)
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['messages', 'pending_approval'],
+    queryFn: () => getMessages({ status: 'pending_approval' }),
+  })
+  const pending = data?.data?.messages || []
+
+  const handleApprove = async (id) => {
+    setActioning(id)
+    try {
+      await approveMessage(id)
+      queryClient.invalidateQueries({ queryKey: ['messages'] })
+    } finally {
+      setActioning(null)
+    }
+  }
+
+  const handleDecline = async (id) => {
+    setActioning(id)
+    try {
+      await declineMessage(id, declineReason)
+      setDeclining(null); setDeclineReason('')
+      queryClient.invalidateQueries({ queryKey: ['messages'] })
+    } finally {
+      setActioning(null)
+    }
+  }
+
+  if (isLoading || pending.length === 0) return null
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm mt-6 overflow-hidden">
+      <div className="p-5 border-b border-gray-100">
+        <div className="text-sm font-bold text-navy">Pending Approval <span className="text-gray-400 font-normal">({pending.length})</span></div>
+      </div>
+      <div className="divide-y divide-gray-50">
+        {pending.map((m) => (
+          <div key={m.id} className="p-4">
+            <div className="flex items-start justify-between gap-3 mb-1">
+              <div>
+                <div className="text-sm font-semibold text-navy">{m.title}</div>
+                <div className="text-xs text-gray-400">
+                  {m.audience_display}
+                  {m.target_student_name ? ` · ${m.target_student_name}` : ''}
+                  {m.target_staff_name ? ` · ${m.target_staff_name}` : ''}
+                  {m.target_classroom_name ? ` · ${m.target_classroom_name}` : ''}
+                  {' · from '}{m.composed_by_name}
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">{m.body}</p>
+
+            {declining === m.id ? (
+              <div className="flex items-center gap-2">
+                <input
+                  className={inputClass + ' flex-1'}
+                  placeholder="Reason (optional)"
+                  value={declineReason}
+                  onChange={(e) => setDeclineReason(e.target.value)}
+                />
+                <button onClick={() => handleDecline(m.id)} disabled={actioning === m.id} className="text-xs font-bold bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 transition disabled:opacity-50">
+                  Confirm Decline
+                </button>
+                <button onClick={() => setDeclining(null)} className="text-xs font-bold text-gray-400 px-2">Cancel</button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button onClick={() => handleApprove(m.id)} disabled={actioning === m.id} className="text-xs font-bold bg-navy text-white px-3.5 py-2 rounded-lg hover:bg-navy-light transition disabled:opacity-50">
+                  {actioning === m.id ? 'Sending...' : 'Approve & Send'}
+                </button>
+                <button onClick={() => setDeclining(m.id)} className="text-xs font-bold text-gray-500 border border-gray-200 px-3.5 py-2 rounded-lg hover:bg-gray-50 transition">
+                  Decline
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function CommunicationsPlaceholder({ isAdminTier }) {
+  return (
+    <div>
+      <MessageComposer isAdminTier={isAdminTier} />
+      {isAdminTier && <PendingApprovalQueue />}
     </div>
   )
 }
@@ -554,26 +922,26 @@ export default function CommunicationsCenter() {
           },
         ]} />
 
-        <div className="mb-6">
-          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-navy">Communications, Legal &amp; Consents</h1>
-          <p className="text-sm text-gray-400 mt-1">Messaging, excursion consent, and manual authorization records.</p>
-        </div>
-
         <div className="flex items-center gap-1 mb-6 border-b border-gray-200">
           {TABS.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-3 text-sm font-semibold border-b-2 transition ${
+              className={`flex items-center gap-1.5 px-4 py-3 text-sm font-semibold border-b-2 transition ${
                 activeTab === tab.key ? 'border-gold text-navy' : 'border-transparent text-gray-400 hover:text-navy'
               }`}
             >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d={tab.icon} />
+              </svg>
               {tab.label}
             </button>
           ))}
         </div>
 
-        {activeTab === 'communications' && <CommunicationsPlaceholder />}
+        {activeTab === 'communications' && (
+          <CommunicationsPlaceholder isAdminTier={activeMember?.role === 'school_admin' || activeMember?.role === 'branch_manager'} />
+        )}
 
         {activeTab === 'consents' && (
           <>

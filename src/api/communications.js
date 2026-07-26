@@ -54,3 +54,23 @@ export async function getConsentWhatsAppLink(id) {
   const response = await api.post(`/communications/consent-requests/${id}/whatsapp/`)
   return response.data
 }
+
+export async function getMessages(params = {}) {
+  const response = await api.get('/communications/messages/', { params })
+  return response.data
+}
+
+export async function composeMessage(payload) {
+  const response = await api.post('/communications/messages/', payload)
+  return response.data
+}
+
+export async function approveMessage(id) {
+  const response = await api.post(`/communications/messages/${id}/approve/`)
+  return response.data
+}
+
+export async function declineMessage(id, reason = '') {
+  const response = await api.post(`/communications/messages/${id}/decline/`, { reason })
+  return response.data
+}
