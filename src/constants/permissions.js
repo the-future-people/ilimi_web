@@ -3,14 +3,14 @@
 
 export const DOMAINS = [
   'students', 'staff', 'attendance', 'fees',
-  'communications', 'documents', 'reports',
+  'communications', 'documents', 'reports', 'parents',
 ]
 
 export const ROLE_PERMISSIONS = {
   school_admin:   Object.fromEntries(DOMAINS.map((d) => [d, 'full'])),
   branch_manager: Object.fromEntries(DOMAINS.map((d) => [d, 'full'])),
   accountant:     { fees: 'full' },
-  registrar:      { students: 'full', documents: 'full', reports: 'full' },
+  registrar:      { students: 'full', staff: 'full', documents: 'full', reports: 'full', parents: 'full' },
   teacher:        {}, // teachers use the separate /teacher/* route tree
   receptionist:   {}, // reserved, unused
 }
