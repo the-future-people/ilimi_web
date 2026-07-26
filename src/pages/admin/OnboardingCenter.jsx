@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Breadcrumb from '../../components/layout/Breadcrumb'
+import { useAuth } from '../../context/AuthContext'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import PortalHeader from '../../components/layout/PortalHeader'
 import { getSchoolClassrooms } from '../../api/academics'
@@ -23,6 +24,7 @@ function initials(name) {
 }
 
 export default function OnboardingCenter() {
+  const { activeMember } = useAuth()
   const queryClient = useQueryClient()
 
   const [showInviteModal, setShowInviteModal] = useState(false)
@@ -142,13 +144,31 @@ export default function OnboardingCenter() {
       <PortalHeader />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-8">
-        <div className="flex items-center gap-2 text-xs text-gray-400 mb-5">
-          <Link to="/admin" className="hover:text-navy transition">Dashboard</Link>
-          <span className="text-gray-300">—º</span>
-          <Link to={ADMISSIONS_TAB} className="hover:text-navy transition">Admissions</Link>
-          <span className="text-gray-300">—º</span>
-          <span className="text-navy font-semibold">Onboarding Center</span>
-        </div>
+        <Breadcrumb items={[
+          {
+            label: 'Dashboard',
+            href: activeMember?.role === 'registrar' ? '/registrar' : activeMember?.role === 'accountant' ? '/accountant' : '/admin',
+            icon: (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+            )
+          },
+          {
+            label: 'Admissions', href: ADMISSIONS_TAB, icon: (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 4v16m8-8H4" />
+              </svg>
+            )
+          },
+          {
+            label: 'Onboarding Center', icon: (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            )
+          },
+        ]} />
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
