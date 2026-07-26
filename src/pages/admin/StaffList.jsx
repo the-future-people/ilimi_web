@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import Breadcrumb from '../../components/layout/Breadcrumb'
 import { useQuery } from '@tanstack/react-query'
 import PortalHeader from '../../components/layout/PortalHeader'
 import { getAllStaff } from '../../api/staff'
@@ -62,7 +63,7 @@ function StaffCard({ member }) {
             {member.years_of_experience ? `${member.years_of_experience} yr${member.years_of_experience !== 1 ? 's' : ''} experience` : 'Experience not set'}
           </div>
           <div className="text-xs text-gray-500 mt-0.5 truncate">
-            {member.position_name || 'No position set'}{member.branch_name ? ` · ${member.branch_name}` : ''}
+            {member.position_name || 'No position set'}{member.branch_name ? ` Â· ${member.branch_name}` : ''}
           </div>
           <div className="text-xs text-gray-500 mt-0.5 truncate">{member.phone}</div>
           {member.email && (
@@ -200,14 +201,14 @@ function StaffList({ embedded = false }) {
           <>
             <div className="flex items-center gap-2 text-xs text-gray-400 mb-5">
               <Link to="/admin" className="hover:text-navy transition">Dashboard</Link>
-              <span className="text-gray-300">›</span>
+              <span className="text-gray-300">—º</span>
               <span className="text-navy font-semibold">Teachers &amp; Staff</span>
             </div>
 
             <div className="mb-6">
               <h1 className="font-serif text-2xl sm:text-3xl font-bold text-navy">Teachers &amp; Staff</h1>
               <p className="text-sm text-gray-400 mt-1">
-                {activeMember?.school_name} · {totalCount} staff member{totalCount !== 1 ? 's' : ''} on record
+                {activeMember?.school_name} Â· {totalCount} staff member{totalCount !== 1 ? 's' : ''} on record
               </p>
             </div>
           </>
@@ -340,7 +341,7 @@ function StaffList({ embedded = false }) {
             {pageNumbers.map((n, i) => (
               <span key={n} className="flex items-center">
                 {i > 0 && pageNumbers[i - 1] !== n - 1 && (
-                  <span className="text-xs text-gray-300 px-1">···</span>
+                  <span className="text-xs text-gray-300 px-1">Â·Â·Â·</span>
                 )}
                 <button
                   onClick={() => setPage(n)}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import Breadcrumb from '../../components/layout/Breadcrumb'
 import { useQuery } from '@tanstack/react-query'
 import PortalHeader from '../../components/layout/PortalHeader'
 import { getSchoolClassrooms } from '../../api/academics'
@@ -335,9 +336,9 @@ function StaffRegistrationWizard() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-8">
         <div className="flex items-center gap-2 text-xs text-gray-400 mb-5">
           <Link to="/admin" className="hover:text-navy transition">Dashboard</Link>
-          <span className="text-gray-300">›</span>
+          <span className="text-gray-300">—º</span>
           <Link to={STAFF_REGISTER_TAB} className="hover:text-navy transition">Register</Link>
-          <span className="text-gray-300">›</span>
+          <span className="text-gray-300">—º</span>
           <span className="text-navy font-semibold">Register Staff</span>
         </div>
 
@@ -696,7 +697,7 @@ function StaffRegistrationWizard() {
                     <div className="font-serif text-lg font-bold text-navy">
                       {TITLE_CHOICES.find((t) => t.value === form.title)?.label || ''} {form.first_name} {form.middle_name} {form.last_name}
                     </div>
-                    <div className="text-xs text-gray-500">{form.gender} · {form.phone}</div>
+                    <div className="text-xs text-gray-500">{form.gender} Â· {form.phone}</div>
                   </div>
                 </div>
 
@@ -729,7 +730,7 @@ function StaffRegistrationWizard() {
                     <div className="text-sm text-gray-400">None added</div>
                   ) : (
                     <div className="text-sm text-navy">
-                      {form.emergency_contacts[0].full_name} · {form.emergency_contacts[0].phone}
+                      {form.emergency_contacts[0].full_name} Â· {form.emergency_contacts[0].phone}
                     </div>
                   )}
                 </div>

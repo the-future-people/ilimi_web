@@ -6,6 +6,7 @@ import { getAllStudents } from '../../api/students'
 import { getSchoolClassrooms } from '../../api/academics'
 import { getFeeTypeSummary, getStudentFees, createPayment, getClassroomFeeSummary } from '../../api/fees'
 import { API_BASE_URL } from '../../config'
+import Breadcrumb from '../../components/layout/Breadcrumb'
 
 const STATUS_STYLES = {
   unpaid: 'bg-red-50 text-red-700',
@@ -679,53 +680,6 @@ function BatchReceiptConfirmation({ results, onCollectAnother }) {
   )
 }
 
-function Breadcrumb({ feeType, onChangeFeeType }) {
-  return (
-    <div className="flex items-center gap-2.5 text-[15px] mb-6">
-      <Link to="/accountant" className="flex items-center gap-1.5 text-gray-400 hover:text-navy transition">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-        </svg>
-        Dashboard
-      </Link>
-
-      <svg className="w-3.5 h-3.5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-      </svg>
-
-      {feeType ? (
-        <button onClick={onChangeFeeType} className="flex items-center gap-1.5 text-gray-400 hover:text-navy transition">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 10v2m0-2c-1.11 0-2.08-.402-2.599-1M12 21a9 9 0 100-18 9 9 0 000 18z" />
-          </svg>
-          Collect payment
-        </button>
-      ) : (
-        <span className="flex items-center gap-1.5 text-navy font-semibold">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 10v2m0-2c-1.11 0-2.08-.402-2.599-1M12 21a9 9 0 100-18 9 9 0 000 18z" />
-          </svg>
-          Collect payment
-        </span>
-      )}
-
-      {feeType && (
-        <>
-          <svg className="w-3.5 h-3.5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-          </svg>
-          <span className="flex items-center gap-1.5 font-semibold" style={{ color: '#c9a227' }}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d={iconFor(feeType.name)} />
-            </svg>
-            {feeType.name}
-          </span>
-        </>
-      )}
-    </div>
-  )
-}
-
 function CollectPayment() {
   const queryClient = useQueryClient()
   const [feeType, setFeeType] = useState(null)
@@ -766,7 +720,38 @@ function CollectPayment() {
     <div className="min-h-screen">
       <PortalHeader />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-10 py-8">
-        <Breadcrumb feeType={feeType} onChangeFeeType={() => setFeeType(null)} />
+        <Breadcrumb items={[
+          {
+            label: 'Dashboard', href: '/accountant', icon: (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+            )
+          },
+          ...(feeType
+            ? [{
+                label: 'Collect payment', href: '/accountant', icon: (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 10v2m0-2c-1.11 0-2.08-.402-2.599-1M12 21a9 9 0 100-18 9 9 0 000 18z" />
+                  </svg>
+                )
+              },
+              {
+                label: feeType.name, icon: (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d={iconFor(feeType.name)} />
+                  </svg>
+                )
+              }]
+            : [{
+                label: 'Collect payment', icon: (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 10v2m0-2c-1.11 0-2.08-.402-2.599-1M12 21a9 9 0 100-18 9 9 0 000 18z" />
+                  </svg>
+                )
+              }]
+          ),
+        ]} />
 
         {receipt ? (
           <ReceiptConfirmation payment={receipt} student={target.student} onCollectAnother={collectAnother} />

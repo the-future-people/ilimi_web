@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import Breadcrumb from '../../components/layout/Breadcrumb'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import PortalHeader from '../../components/layout/PortalHeader'
 import { getAllStudents, bulkChangeStudentClass } from '../../api/students'
@@ -112,7 +113,7 @@ function StudentMobileCard({ student, selected, onToggle }) {
           <div className="text-xs text-gray-400">{student.student_id}</div>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             {student.primary_guardian_name && (
-              <span className="text-[11px] text-gray-500">{student.primary_guardian_name} · {student.primary_guardian_phone}</span>
+              <span className="text-[11px] text-gray-500">{student.primary_guardian_name} Â· {student.primary_guardian_phone}</span>
             )}
           </div>
           <div className="mt-1">
@@ -307,7 +308,7 @@ function StudentList({ embedded = false }) {
             {/* Breadcrumb */}
             <div className="flex items-center gap-2 text-xs text-gray-400 mb-5">
               <Link to="/admin" className="hover:text-navy transition">Dashboard</Link>
-              <span className="text-gray-300">›</span>
+              <span className="text-gray-300">—º</span>
               <span className="text-navy font-semibold">Students &amp; Admissions</span>
             </div>
 
@@ -315,7 +316,7 @@ function StudentList({ embedded = false }) {
             <div className="mb-6">
               <h1 className="font-serif text-2xl sm:text-3xl font-bold text-navy">Students &amp; Admissions</h1>
               <p className="text-sm text-gray-400 mt-1">
-                {activeMember?.school_name} · {totalCount} student{totalCount !== 1 ? 's' : ''} on record
+                {activeMember?.school_name} Â· {totalCount} student{totalCount !== 1 ? 's' : ''} on record
               </p>
             </div>
           </>
@@ -526,7 +527,7 @@ function StudentList({ embedded = false }) {
                   {pageNumbers.map((n, i) => (
                     <span key={n} className="flex items-center">
                       {i > 0 && pageNumbers[i - 1] !== n - 1 && (
-                        <span className="text-xs text-gray-300 px-1">···</span>
+                        <span className="text-xs text-gray-300 px-1">Â·Â·Â·</span>
                       )}
                       <button
                         onClick={() => setPage(n)}

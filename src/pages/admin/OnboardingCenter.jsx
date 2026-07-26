@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import Breadcrumb from '../../components/layout/Breadcrumb'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import PortalHeader from '../../components/layout/PortalHeader'
 import { getSchoolClassrooms } from '../../api/academics'
@@ -143,9 +144,9 @@ export default function OnboardingCenter() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-8">
         <div className="flex items-center gap-2 text-xs text-gray-400 mb-5">
           <Link to="/admin" className="hover:text-navy transition">Dashboard</Link>
-          <span className="text-gray-300">›</span>
+          <span className="text-gray-300">—º</span>
           <Link to={ADMISSIONS_TAB} className="hover:text-navy transition">Admissions</Link>
-          <span className="text-gray-300">›</span>
+          <span className="text-gray-300">—º</span>
           <span className="text-navy font-semibold">Onboarding Center</span>
         </div>
 
@@ -186,7 +187,7 @@ export default function OnboardingCenter() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-bold text-navy">{invite.prospective_first_name} {invite.prospective_last_name}</div>
-                    <div className="text-xs text-gray-400">Submitted {formatDate(invite.submitted_at)} · Parent: {invite.parent_phone}</div>
+                    <div className="text-xs text-gray-400">Submitted {formatDate(invite.submitted_at)} Â· Parent: {invite.parent_phone}</div>
                   </div>
                   <button
                     onClick={() => openReview(invite)}
@@ -223,7 +224,7 @@ export default function OnboardingCenter() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-navy">{student.full_name}</div>
-                    <div className="text-xs text-gray-400">{student.student_id}{student.classroom_name ? ` · ${student.classroom_name}` : ''}</div>
+                    <div className="text-xs text-gray-400">{student.student_id}{student.classroom_name ? ` Â· ${student.classroom_name}` : ''}</div>
                   </div>
                   <Link
                     to={`/admin/students/${student.id}`}
@@ -338,7 +339,7 @@ export default function OnboardingCenter() {
                   <div className="flex flex-col gap-1.5">
                     {(submittedData.guardians || []).map((g, i) => (
                       <div key={i} className="text-sm text-navy">
-                        {g.first_name} {g.last_name} <span className="text-gray-400 capitalize">({g.relationship})</span> · {g.phone}
+                        {g.first_name} {g.last_name} <span className="text-gray-400 capitalize">({g.relationship})</span> Â· {g.phone}
                         {g.is_primary && <span className="ml-1.5 text-[10px] font-semibold bg-gold/10 text-amber-700 px-1.5 py-0.5 rounded-full">Primary</span>}
                       </div>
                     ))}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import Breadcrumb from '../../components/layout/Breadcrumb'
 import { useQuery } from '@tanstack/react-query'
 import PortalHeader from '../../components/layout/PortalHeader'
 import { getSchoolClassrooms } from '../../api/academics'
@@ -151,7 +152,7 @@ function EnrolWizard() {
 
   const update = (field, value) => setForm((prev) => ({ ...prev, [field]: value }))
 
-  // ── Sibling search (Academic step) ──────────────────────────────────
+  // â”€â”€ Sibling search (Academic step) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [siblingQuery, setSiblingQuery] = useState('')
   const [siblingResults, setSiblingResults] = useState([])
   const siblingDebounceRef = useRef(null)
@@ -184,7 +185,7 @@ function EnrolWizard() {
     update('siblings', form.siblings.filter((s) => s.id !== id))
   }
 
-  // ── Validation ───────────────────────────────────────────────────────
+  // â”€â”€ Validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const validateStep = (s) => {
     const errs = {}
     if (s === 1) {
@@ -242,7 +243,7 @@ function EnrolWizard() {
   }
   const goBack = () => changeStep(Math.max(step - 1, 1))
 
-  // ── Submission (two-phase: JSON create, then sequential file uploads) ─
+  // â”€â”€ Submission (two-phase: JSON create, then sequential file uploads) â”€
 const handleSubmit = async () => {
     if (phase !== 'form') return
     setSubmitError('')
@@ -437,9 +438,9 @@ const handleSubmit = async () => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-8">
         <div className="flex items-center gap-2 text-xs text-gray-400 mb-5">
           <Link to="/admin" className="hover:text-navy transition">Dashboard</Link>
-          <span className="text-gray-300">›</span>
+          <span className="text-gray-300">—º</span>
           <Link to="/admin/students?tab=admissions" className="hover:text-navy transition">Admissions</Link>
-          <span className="text-gray-300">›</span>
+          <span className="text-gray-300">—º</span>
           <span className="text-navy font-semibold">Enrol New Student</span>
         </div>
 
@@ -659,7 +660,7 @@ const handleSubmit = async () => {
                     {form.siblings.map((s) => (
                       <span key={s.id} className="flex items-center gap-1.5 text-xs font-semibold bg-gold/10 text-amber-700 px-2.5 py-1 rounded-full">
                         {s.full_name}
-                        <button type="button" onClick={() => removeSibling(s.id)} className="hover:text-red-600">×</button>
+                        <button type="button" onClick={() => removeSibling(s.id)} className="hover:text-red-600">Ã—</button>
                       </span>
                     ))}
                   </div>
@@ -777,7 +778,7 @@ const handleSubmit = async () => {
                 </div>
                 <div>
                   <div className="font-serif text-lg font-bold text-navy">{form.first_name} {form.middle_name} {form.last_name}</div>
-                  <div className="text-xs text-gray-500">{form.date_of_birth} · {form.gender}</div>
+                  <div className="text-xs text-gray-500">{form.date_of_birth} Â· {form.gender}</div>
                 </div>
               </div>
 
@@ -812,7 +813,7 @@ const handleSubmit = async () => {
                       </div>
                       <div className="text-sm">
                         <div className="text-navy font-semibold">{g.first_name} {g.last_name} <span className="text-gray-400 font-normal capitalize">({g.relationship})</span></div>
-                        <div className="text-xs text-gray-500">{g.phone}{g.occupation_name ? ` · ${g.occupation_name}` : ''}</div>
+                        <div className="text-xs text-gray-500">{g.phone}{g.occupation_name ? ` Â· ${g.occupation_name}` : ''}</div>
                       </div>
                     </div>
                   ))}

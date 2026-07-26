@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import Breadcrumb from '../../components/layout/Breadcrumb'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { getAllStudents } from '../../api/students'
 import { getDocumentTemplates, getGeneratedDocuments, previewDocument, generateDocument } from '../../api/documents'
@@ -381,9 +382,9 @@ export default function StudentDocumentationHub() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-8">
         <div className="flex items-center gap-2 text-xs text-gray-400 mb-5">
           <Link to="/admin" className="hover:text-navy transition">Dashboard</Link>
-          <span className="text-gray-300">›</span>
+          <span className="text-gray-300">—º</span>
           <Link to={ADMISSIONS_TAB} className="hover:text-navy transition">Admissions</Link>
-          <span className="text-gray-300">›</span>
+          <span className="text-gray-300">—º</span>
           <span className="text-navy font-semibold">Student Documentation</span>
         </div>
 
@@ -532,7 +533,7 @@ export default function StudentDocumentationHub() {
                             {doc.student_name}
                           </Link>
                           <div className="text-xs text-gray-400">
-                            {doc.student_id_number} · Issued {formatDate(doc.generated_at)} by {doc.generated_by_name || 'Unknown'}
+                            {doc.student_id_number} Â· Issued {formatDate(doc.generated_at)} by {doc.generated_by_name || 'Unknown'}
                           </div>
                         </div>
                         <a

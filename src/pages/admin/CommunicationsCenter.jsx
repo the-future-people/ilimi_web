@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import Breadcrumb from '../../components/layout/Breadcrumb'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import PortalHeader from '../../components/layout/PortalHeader'
+import { useAuth } from '../../context/AuthContext'
 import { getSchoolClassrooms } from '../../api/academics'
 import { getAllStudents } from '../../api/students'
 import {
@@ -138,8 +140,8 @@ function ConsentRequestRow({ cr, onGeneratePdf, onEmail, onWhatsApp, actionState
       <div className="flex-1 min-w-0">
         <div className="text-sm font-semibold text-navy">{cr.student_name}</div>
         <div className="text-xs text-gray-400">
-          {CONSENT_TYPE_LABELS[cr.consent_type]}{cr.excursion_name ? ` · ${cr.excursion_name}` : ''}
-          {cr.guardian_name ? ` · ${cr.guardian_name}` : ''}
+          {CONSENT_TYPE_LABELS[cr.consent_type]}{cr.excursion_name ? ` Â· ${cr.excursion_name}` : ''}
+          {cr.guardian_name ? ` Â· ${cr.guardian_name}` : ''}
         </div>
       </div>
 
@@ -218,7 +220,7 @@ function Pagination({ page, totalPages, hasNext, hasPrevious, onChange }) {
       </button>
       {pageNumbers.map((n, i) => (
         <span key={n} className="flex items-center">
-          {i > 0 && pageNumbers[i - 1] !== n - 1 && <span className="text-xs text-gray-300 px-1">···</span>}
+          {i > 0 && pageNumbers[i - 1] !== n - 1 && <span className="text-xs text-gray-300 px-1">Â·Â·Â·</span>}
           <button
             onClick={() => onChange(n)}
             className={`w-8 h-8 rounded-lg text-xs font-bold transition ${n === page ? 'bg-navy text-white' : 'text-gray-500 hover:bg-gray-50'}`}
@@ -296,6 +298,7 @@ function CommunicationsPlaceholder() {
 }
 
 export default function CommunicationsCenter() {
+  const { activeMember } = useAuth()
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState('communications')
 
@@ -532,11 +535,24 @@ export default function CommunicationsCenter() {
       <PortalHeader />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-8">
-        <div className="flex items-center gap-2 text-xs text-gray-400 mb-5">
-          <Link to="/admin" className="hover:text-navy transition">Dashboard</Link>
-          <span className="text-gray-300">›</span>
-          <span className="text-navy font-semibold">Communications, Legal &amp; Consents</span>
-        </div>
+        <Breadcrumb items={[
+          {
+            label: 'Dashboard',
+            href: activeMember?.role === 'registrar' ? '/registrar' : activeMember?.role === 'accountant' ? '/accountant' : '/admin',
+            icon: (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+            )
+          },
+          {
+            label: 'Communications, Legal & Consents', icon: (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            )
+          },
+        ]} />
 
         <div className="mb-6">
           <h1 className="font-serif text-2xl sm:text-3xl font-bold text-navy">Communications, Legal &amp; Consents</h1>

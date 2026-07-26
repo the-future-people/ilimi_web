@@ -1,4 +1,5 @@
 import { Link, useSearchParams } from 'react-router-dom'
+import Breadcrumb from '../../components/layout/Breadcrumb'
 import { useQuery } from '@tanstack/react-query'
 import PortalHeader from '../../components/layout/PortalHeader'
 import { useAuth } from '../../context/AuthContext'
@@ -32,22 +33,27 @@ function StudentsClassesAdmissions() {
       <PortalHeader />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-8">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-xs text-gray-400 mb-5">
-          <Link to="/admin" className="hover:text-navy transition">Dashboard</Link>
-          <span className="text-gray-300">›</span>
-          <span className="text-navy font-semibold">Students, Classes &amp; Admissions</span>
-        </div>
+        <Breadcrumb items={[
+          {
+            label: 'Dashboard',
+            href: activeMember?.role === 'registrar' ? '/registrar' : activeMember?.role === 'accountant' ? '/accountant' : '/admin',
+            icon: (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+            )
+          },
+          {
+            label: 'Students, Classes & Admissions', icon: (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+              </svg>
+            )
+          },
+        ]} />
 
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-navy">
-            Students, Classes &amp; Admissions
-          </h1>
-          <p className="text-sm text-gray-400 mt-1">
-            {activeMember?.school_name} · {totalCount} student{totalCount !== 1 ? 's' : ''} on record
-          </p>
-        </div>
+     
 
         {/* Tabs */}
         <div className="flex items-center gap-1 border-b border-gray-200 mb-6 overflow-x-auto">

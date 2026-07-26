@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
+import Breadcrumb from '../../components/layout/Breadcrumb'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import PortalHeader from '../../components/layout/PortalHeader'
 import { getStudentDetail, changeStudentClass, updateStudent, uploadStudentFile } from '../../api/students'
@@ -24,7 +26,7 @@ const statusStyles = {
   suspended: 'bg-amber-50 text-amber-700',
 }
 
-// ── Choice maps (mirror apps/students/models.py) ──────────────────────
+// â”€â”€ Choice maps (mirror apps/students/models.py) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // The API returns these fields as raw codes, so both the read-only display
 // and the edit dropdowns key off these. Keep in sync with the model.
 const GENDER_CHOICES = [
@@ -105,6 +107,7 @@ const editInput = "w-full px-3 py-2 border border-gray-200 rounded-lg text-sm ou
 
 function StudentDetail() {
   const { studentId } = useParams()
+  const { activeMember } = useAuth()
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState('overview')
   const [isScrolled, setIsScrolled] = useState(false)
@@ -114,7 +117,7 @@ function StudentDetail() {
   const [changingClass, setChangingClass] = useState(false)
   const [classChangeError, setClassChangeError] = useState('')
 
-  // ── Edit mode (Overview) ────────────────────────────────────────────
+  // â”€â”€ Edit mode (Overview) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState({})
   const [saving, setSaving] = useState(false)
@@ -175,7 +178,7 @@ function StudentDetail() {
     }
   }
 
-  // ── Edit handlers ───────────────────────────────────────────────────
+  // â”€â”€ Edit handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const startEditing = () => {
     // Seed the form from the current student, editable fields only.
     const seed = {}
@@ -291,19 +294,36 @@ function StudentDetail() {
 
       {/* Sticky breadcrumb + tabs */}
       <div
-        className={`sticky top-16 z-40 bg-gray-100/95 backdrop-blur-sm transition-shadow ${
+        className={`sticky top-16 z-40 bg-gray-100/95 backdrop-blur-sm transition-shadow pt-6 ${
           isScrolled ? 'shadow-sm border-b border-gray-200' : ''
         }`}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10">
-          <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-gray-400 pt-3 sm:pt-4 pb-2.5 sm:pb-3 overflow-x-auto no-scrollbar whitespace-nowrap">
-            <Link to="/admin" className="hover:text-navy transition">Dashboard</Link>
-            <span className="text-gray-300">›</span>
-            <Link to={STUDENTS_TAB} className="hover:text-navy transition">Students</Link>
-            <span className="text-gray-300">›</span>
-            <span className="text-navy font-semibold">{student.full_name}</span>
-          </div>
-
+          <Breadcrumb items={[
+            {
+              label: 'Dashboard',
+              href: activeMember?.role === 'registrar' ? '/registrar' : activeMember?.role === 'accountant' ? '/accountant' : '/admin',
+              icon: (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+              )
+            },
+            {
+              label: 'Students', href: STUDENTS_TAB, icon: (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                </svg>
+              )
+            },
+            {
+              label: student.full_name, icon: (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              )
+            },
+          ]} />
           <div className="bg-white rounded-t-2xl shadow relative">
             {canScrollLeft && (
               <button
@@ -376,7 +396,7 @@ function StudentDetail() {
               <h1 className="font-serif text-xl sm:text-2xl font-bold text-navy truncate">{student.full_name}</h1>
               <div className="flex items-center gap-2 flex-wrap mt-1">
                 <span className="text-xs text-gray-400">{student.student_id}</span>
-                <span className="text-gray-200">·</span>
+                <span className="text-gray-200">Â·</span>
                 <button
                   onClick={() => { setSelectedClassroom(student.current_class || ''); setShowClassModal(true); }}
                   disabled={editing}
@@ -500,7 +520,7 @@ function StudentDetail() {
                 <div className="text-xs font-bold text-navy uppercase tracking-wide mb-2 mt-6 md:mt-0">Academic &amp; Address</div>
                 <div className="py-2 border-b border-gray-50">
                   <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Class</div>
-                  <div className="text-sm text-gray-400">{student.classroom_name || 'Unassigned'} <span className="text-gray-300">· edit via the class link above</span></div>
+                  <div className="text-sm text-gray-400">{student.classroom_name || 'Unassigned'} <span className="text-gray-300">Â· edit via the class link above</span></div>
                 </div>
                 <EditRow label="Previous School">
                   <input className={editInput} value={editForm.previous_school} onChange={(e) => updateField('previous_school', e.target.value)} />
@@ -550,7 +570,7 @@ function StudentDetail() {
                     <div className="text-sm text-gray-600">{g.guardian.phone}</div>
                     {g.guardian.email && <div className="text-sm text-gray-500">{g.guardian.email}</div>}
                     {g.guardian.occupation && (
-                      <div className="text-xs text-gray-400 mt-2">{g.guardian.occupation}{g.guardian.employer ? ` · ${g.guardian.employer}` : ''}</div>
+                      <div className="text-xs text-gray-400 mt-2">{g.guardian.occupation}{g.guardian.employer ? ` Â· ${g.guardian.employer}` : ''}</div>
                     )}
                   </div>
                 ))}
