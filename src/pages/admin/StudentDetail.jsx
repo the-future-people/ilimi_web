@@ -423,7 +423,7 @@ function StudentDetail() {
                 Edit Profile
               </button>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="basis-full sm:basis-auto flex items-center gap-2">
                 <button
                   onClick={cancelEditing}
                   disabled={saving}
