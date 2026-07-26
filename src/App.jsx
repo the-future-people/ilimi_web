@@ -22,6 +22,7 @@ import { useAuth } from './context/AuthContext'
 import AccountantPortal from './pages/accountant/AccountantPortal'
 import CollectPayment from './pages/accountant/CollectPayment'
 import RegistrarPortal from './pages/registrar/RegistrarPortal'
+import GuardianManagement from './pages/registrar/GuardianManagement'
 const ADMIN_ROLES = ['school_admin', 'branch_manager']
 
 
@@ -64,6 +65,14 @@ function App() {
         element={
           <ProtectedRoute requiredRole={ADMIN_ROLES}>
             <AdminPortal />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/registrar/guardians"
+        element={
+          <ProtectedRoute requiredRole="registrar">
+            <GuardianManagement />
           </ProtectedRoute>
         }
       />

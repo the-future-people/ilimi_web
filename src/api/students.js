@@ -87,3 +87,18 @@ export async function submitPublicInvite(token, payload) {
   const response = await api.post(`/students/public/enrol/${token}/submit/`, formData)
   return response.data
 }
+
+export async function getGuardians(params = {}) {
+  const response = await api.get('/students/guardians/', { params })
+  return response.data
+}
+
+export async function getGuardianDetail(guardianId) {
+  const response = await api.get(`/students/guardians/${guardianId}/`)
+  return response.data
+}
+
+export async function updateGuardian(guardianId, payload) {
+  const response = await api.patch(`/students/guardians/${guardianId}/`, payload)
+  return response.data
+}
