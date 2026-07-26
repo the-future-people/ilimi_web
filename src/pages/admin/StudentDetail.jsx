@@ -368,7 +368,7 @@ function StudentDetail() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 pb-10">
         <div className="bg-white rounded-b-2xl shadow-lg -mt-px">
           {/* Profile header */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 sm:p-6 border-b border-gray-100">
+          <div className="flex flex-wrap items-start gap-4 p-5 sm:p-6 border-b border-gray-100">
             <div className="relative w-16 h-16 flex-shrink-0">
               <div className="w-16 h-16 rounded-2xl bg-navy text-white text-lg font-bold flex items-center justify-center overflow-hidden">
                 {stagedPhoto ? (
@@ -396,7 +396,7 @@ function StudentDetail() {
               <h1 className="font-serif text-xl sm:text-2xl font-bold text-navy truncate">{student.full_name}</h1>
               <div className="flex items-center gap-2 flex-wrap mt-1">
                 <span className="text-xs text-gray-400">{student.student_id}</span>
-                <span className="text-gray-200">Â·</span>
+                <span className="text-gray-200">·</span>
                 <button
                   onClick={() => { setSelectedClassroom(student.current_class || ''); setShowClassModal(true); }}
                   disabled={editing}
