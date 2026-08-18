@@ -5,58 +5,60 @@ import { useAuth } from '../../context/AuthContext'
 
 const modules = [
   {
-    key: 'students',
-    title: 'Students, Classes & Admissions',
-    desc: 'Enrol students, set up classes, and manage records.',
-    tags: ['Enrolment', 'Profiles', 'Classes'],
-    gradient: 'from-[#1e40af] to-[#3b82f6]',
-    icon: 'M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z',
-    href: '/admin/students',
-    available: true,
-  },
-  {
-    key: 'staff',
-    title: 'Teachers & Staff',
-    desc: 'Manage staff profiles and assign teachers to classes.',
-    tags: ['Directory', 'Register', 'Assignment'],
-    gradient: 'from-[#15803d] to-[#22c55e]',
-    icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
-    href: '/admin/staff',
-    available: true,
-  },
-  {
-    key: 'attendance',
-    title: 'Attendance',
-    desc: 'Take daily attendance and view historical records.',
-    tags: ['Daily Roll', 'Reports', 'Alerts'],
-    gradient: 'from-[#c2410c] to-[#f97316]',
-    icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
-    available: false,
-  },
-  {
-    key: 'fees',
-    title: 'Fees & Finance',
-    desc: 'Collect fees via Mobile Money and track payments.',
-    tags: ['MoMo', 'Invoices', 'Reports'],
+    key: 'collect',
+    title: 'Collect Payment',
+    desc: 'Record a fee payment — pick the student, the fee, and the amount.',
+    tags: ['MoMo', 'Cash', 'Bank'],
     gradient: 'from-[#7e22ce] to-[#a855f7]',
     icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 10v2m0-2c-1.11 0-2.08-.402-2.599-1M12 21a9 9 0 100-18 9 9 0 000 18z',
-    available: false,
-  },
-  {
-    key: 'communications',
-    title: 'Communications, Legal & Consents',
-    desc: 'Manage parental consent for excursions, first aid, and media use.',
-    tags: ['Consent', 'Excursions', 'Legal'],
-    gradient: 'from-[#b45309] to-[#f59e0b]',
-    icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z',
-    href: '/admin/communications',
+    href: '/accountant/collect',
     available: true,
   },
   {
-    key: 'reports',
-    title: 'Reports & Analytics',
-    desc: 'Generate academic and financial reports across branches.',
-    tags: ['Analytics', 'Exports', 'Branches'],
+    key: 'balances',
+    title: 'Student Balances',
+    desc: 'See who owes what, by class and by term, at a glance.',
+    tags: ['Balances', 'By Class', 'Overdue'],
+    gradient: 'from-[#1e40af] to-[#3b82f6]',
+    icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+    href: '/accountant/balances',
+    available: false,
+  },
+  {
+    key: 'structures',
+    title: 'Fee Structures',
+    desc: 'Set what each class and term is charged — tuition, feeding, excursions.',
+    tags: ['Tuition', 'Feeding', 'Excursions'],
+    gradient: 'from-[#15803d] to-[#22c55e]',
+    icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+    href: '/accountant/structures',
+    available: false,
+  },
+  {
+    key: 'history',
+    title: 'Payment History',
+    desc: 'Search and review every payment recorded, with receipts.',
+    tags: ['Receipts', 'Search', 'Filters'],
+    gradient: 'from-[#b45309] to-[#f59e0b]',
+    icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
+    href: '/accountant/history',
+    available: false,
+  },
+  {
+    key: 'installments',
+    title: 'Installment Plans',
+    desc: 'Set up and track fees paid in parts across a term.',
+    tags: ['Plans', 'Schedules', 'Tracking'],
+    gradient: 'from-[#c2410c] to-[#f97316]',
+    icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z',
+    href: '/accountant/installments',
+    available: false,
+  },
+  {
+    key: 'reconciliation',
+    title: 'Reconciliation',
+    desc: 'Daily and termly totals — confirm everything collected adds up.',
+    tags: ['Daily', 'Termly', 'Totals'],
     gradient: 'from-[#0f766e] to-[#14b8a6]',
     icon: 'M9 17v-2a4 4 0 014-4h3m0 0l-3-3m3 3l-3 3M4 4h6l2 3h8a1 1 0 011 1v9a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z',
     available: false,
@@ -75,10 +77,7 @@ function ModuleIcon({ path, active }) {
       </svg>
       {active && (
         <style>{`
-          @keyframes icon-pulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.25); }
-            50% { box-shadow: 0 0 0 10px rgba(255,255,255,0); }
-          }
+          @keyframes icon-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.25); } 50% { box-shadow: 0 0 0 10px rgba(255,255,255,0); } }
           .animate-icon-pulse { animation: icon-pulse 2.2s ease-in-out infinite; }
         `}</style>
       )}
@@ -135,7 +134,7 @@ function AccountantPortal() {
               </>
             )
 
-            const cardClass = `relative rounded-[20px] p-6 overflow-hidden min-h-[200px] flex flex-col justify-between bg-gradient-to-br ${mod.gradient} shadow-[0_4px_16px_rgba(0,0,0,0.1)] transition-all duration-200`
+                        const cardClass = `relative rounded-[20px] p-6 overflow-hidden min-h-[200px] flex flex-col justify-between bg-gradient-to-br ${mod.gradient} shadow-[0_4px_16px_rgba(0,0,0,0.1)] transition-all duration-200`
             const cardStyle = { outline: '2px dashed rgba(150,7,7,0.3)', outlineOffset: '6px' }
 
             return mod.available ? (
@@ -143,7 +142,7 @@ function AccountantPortal() {
                 {CardInner}
               </Link>
             ) : (
-              <div key={mod.key} className={cardClass} style={cardStyle}>
+              <div key={mod.key} className={cardClass}>
                 {CardInner}
               </div>
             )
