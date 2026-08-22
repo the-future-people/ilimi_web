@@ -198,9 +198,11 @@ function ClassDetail() {
         }`}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10">
-          <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-gray-400 pt-3 sm:pt-4 pb-2.5 sm:pb-3 overflow-x-auto no-scrollbar whitespace-nowrap">
-            <Link to="/teacher" className="hover:text-navy transition">My Portal</Link>
-            <span className="text-gray-300">›</span>
+                    <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 pt-3 sm:pt-4 pb-2.5 sm:pb-3 overflow-x-auto no-scrollbar whitespace-nowrap">
+            <Link to="/teacher" className="hover:text-navy transition font-medium">My Portal</Link>
+            <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+            </svg>
             <span className="text-navy font-semibold">{className}</span>
           </div>
 
