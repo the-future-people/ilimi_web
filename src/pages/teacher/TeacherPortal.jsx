@@ -42,7 +42,7 @@ const crossCutting = [
   },
 ]
 
-const AVATAR_COLORS = ['#85B7EB', '#ED93B1', '#5DCAA5', '#AFA9EC', '#EF9F27']
+const AVATAR_COLORS = ['#378ADD', '#D4537E', '#1D9E75', '#7F77DD', '#BA7517']
 const colorFor = (id) => AVATAR_COLORS[id % AVATAR_COLORS.length]
 const initialsOf = (name) =>
   name.split(' ').filter(Boolean).map((n) => n[0]).slice(0, 2).join('').toUpperCase()
@@ -67,18 +67,18 @@ function ClassCard({ classroom }) {
   return (
     <Link
       to={`/teacher/classroom/${classroom.id}`}
-      className={`bg-navy rounded-xl p-3 flex flex-col transition-all hover:shadow-xl border-2 ${
-        isFormClass ? 'border-gold' : 'border-transparent'
+        className={`bg-white rounded-xl p-3 flex flex-col transition-all hover:shadow-lg border-2 ${
+        isFormClass ? 'border-gold' : 'border-gray-300'
       }`}
     >
-      <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-2">
         <div
-          className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-            isFormClass ? 'bg-gold' : 'bg-white/10'
+          className={`w-7 h-7 rounded-lg border-[1.5px] flex items-center justify-center ${
+            isFormClass ? 'border-gold' : 'border-gray-300'
           }`}
         >
           <svg
-            className={`w-3.5 h-3.5 ${isFormClass ? 'text-navy' : 'text-white/50'}`}
+            className={`w-3.5 h-3.5 ${isFormClass ? 'text-gold' : 'text-gray-500'}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -88,54 +88,50 @@ function ClassCard({ classroom }) {
         </div>
         <span
           className={`text-[8px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full ${
-            isFormClass ? 'bg-amber-300 text-amber-950' : 'bg-white/10 text-white/60'
+            isFormClass ? 'bg-amber-100 text-amber-900' : 'bg-gray-100 text-gray-600'
           }`}
         >
           {isFormClass ? 'Form Master' : classroom.class_level}
         </span>
       </div>
 
-      <div className="text-[13px] font-semibold text-cream-light truncate">{classroom.full_name}</div>
-      <div className="text-[11px] text-white/40 leading-snug mb-2 line-clamp-2">{subjectNames}</div>
+      <div className="text-[13px] font-semibold text-navy truncate">{classroom.full_name}</div>
+      <div className="text-[11px] text-gray-500 leading-snug mb-2">{subjectNames}</div>
 
       {attendanceDue ? (
-        <div className="flex items-center justify-between px-2.5 py-1.5 mb-2 bg-white/[0.07] border-l-[3px] border-gold">
+        <div className="flex items-center justify-between px-2.5 py-1.5 mb-2 bg-amber-50 border-l-[3px] border-gold">
           <div className="min-w-0">
-            <div className="text-[11px] font-semibold text-gold truncate">Morning register</div>
-            <div className="text-[10px] text-white/40">Not taken today</div>
+            <div className="text-[11px] font-semibold text-navy truncate">Morning register</div>
+            <div className="text-[10px] text-gray-500">Not taken today</div>
           </div>
-          <span className="text-gold flex-shrink-0">{chevron}</span>
+          <span className="text-gray-400 flex-shrink-0">{chevron}</span>
         </div>
       ) : unmarkedCount > 0 ? (
-        <div className="flex items-center justify-between px-2.5 py-1.5 mb-2 bg-red-500/15 border-l-[3px] border-red-500">
+        <div className="flex items-center justify-between px-2.5 py-1.5 mb-2 bg-red-50 border-l-[3px] border-red-700">
           <div className="min-w-0">
-            <div className="text-[11px] font-semibold text-red-300 truncate">Work awaiting marks</div>
-            <div className="text-[10px] text-red-300/70">{unmarkedCount} unmarked</div>
+            <div className="text-[11px] font-semibold text-red-900 truncate">Work awaiting marks</div>
+            <div className="text-[10px] text-red-700">{unmarkedCount} unmarked</div>
           </div>
-          <span className="text-red-300 flex-shrink-0">{chevron}</span>
+          <span className="text-red-700 flex-shrink-0">{chevron}</span>
         </div>
       ) : (
-        <div className="flex items-center justify-between px-2.5 py-1.5 mb-2 bg-white/[0.04] border-l-[3px] border-white/15">
-          <div className="text-[11px] text-white/35">Nothing outstanding</div>
-          <span className="text-white/25 flex-shrink-0">{chevron}</span>
+        <div className="flex items-center justify-between px-2.5 py-1.5 mb-2 bg-gray-50 border-l-[3px] border-gray-300">
+          <div className="text-[11px] text-gray-400">Nothing outstanding</div>
+          <span className="text-gray-300 flex-shrink-0">{chevron}</span>
         </div>
       )}
 
-      <div className="flex items-center justify-between border-t border-white/10 pt-2 mt-auto">
+      <div className="flex items-center justify-between border-t border-gray-200 pt-2 mt-auto">
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-[10px] text-white/40 flex-shrink-0">
+          <span className="text-[10px] text-gray-500 flex-shrink-0">
             {classroom.student_count} student{classroom.student_count !== 1 ? 's' : ''}
           </span>
           <div className="flex">
             {preview.map((s, i) => (
               <div
                 key={s.id}
-                className="w-[19px] h-[19px] rounded-full border-2 border-navy flex items-center justify-center text-[8px] font-bold"
-                style={{
-                  backgroundColor: colorFor(s.id),
-                  color: '#1a2b4a',
-                  marginLeft: i === 0 ? 0 : '-6px',
-                }}
+                className="w-[19px] h-[19px] rounded-full border-2 border-white flex items-center justify-center text-[8px] font-bold text-white"
+                style={{ backgroundColor: colorFor(s.id), marginLeft: i === 0 ? 0 : '-6px' }}
                 title={s.name}
               >
                 {initialsOf(s.name)}
@@ -143,7 +139,7 @@ function ClassCard({ classroom }) {
             ))}
             {remaining > 0 && (
               <div
-                className="w-[19px] h-[19px] rounded-full border-2 border-navy bg-white/10 flex items-center justify-center text-[8px] font-bold text-white/50"
+                className="w-[19px] h-[19px] rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-[8px] font-bold text-gray-500"
                 style={{ marginLeft: '-6px' }}
               >
                 +{remaining}
@@ -151,7 +147,7 @@ function ClassCard({ classroom }) {
             )}
           </div>
         </div>
-        <span className="text-white/20 flex-shrink-0">{chevron}</span>
+        <span className="text-gray-300 flex-shrink-0">{chevron}</span>
       </div>
     </Link>
   )
