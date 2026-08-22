@@ -166,7 +166,7 @@ function TeacherPortal() {
     <div className="min-h-screen">
       <PortalHeader />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-8">
 
         <div className="flex items-baseline justify-between mb-3">
           <h2 className="font-serif text-lg font-bold text-navy">My Teaching Load</h2>
