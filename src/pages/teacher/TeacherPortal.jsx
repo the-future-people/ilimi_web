@@ -42,32 +42,43 @@ const crossCutting = [
   },
 ]
 
+const AVATAR_COLORS = ['#378ADD', '#D4537E', '#1D9E75', '#7F77DD', '#BA7517']
+const colorFor = (id) => AVATAR_COLORS[id % AVATAR_COLORS.length]
+const initialsOf = (name) =>
+  name.split(' ').filter(Boolean).map((n) => n[0]).slice(0, 2).join('').toUpperCase()
+
 const schoolIcon =
   'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'
 
+const chevron = (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+  </svg>
+)
+
 function ClassCard({ classroom }) {
   const isFormClass = classroom.is_form_teacher === true
-  const subjectCount = classroom.subjects.length
-
-  // Outstanding state — populated by the backend once wired.
   const attendanceDue = classroom.attendance_due === true
   const unmarkedCount = classroom.unmarked_count || 0
+  const preview = classroom.student_preview || []
+  const remaining = classroom.student_count - preview.length
+  const subjectNames = classroom.subjects.map((s) => s.name).join(', ')
 
   return (
     <Link
       to={`/teacher/classroom/${classroom.id}`}
-      className={`group bg-navy rounded-xl p-4 flex flex-col transition-all hover:shadow-xl hover:-translate-y-0.5 ${
-        isFormClass ? 'ring-2 ring-gold' : ''
+      className={`bg-white rounded-xl p-4 flex flex-col transition-all hover:shadow-lg ${
+        isFormClass ? 'border border-gold' : 'border border-gray-200'
       }`}
     >
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center justify-between mb-3">
         <div
-          className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
-            isFormClass ? 'bg-gold' : 'bg-white/10'
+          className={`w-[34px] h-[34px] rounded-[9px] border-[1.5px] flex items-center justify-center ${
+            isFormClass ? 'border-gold' : 'border-gray-300'
           }`}
         >
           <svg
-            className={`w-3.5 h-3.5 ${isFormClass ? 'text-navy' : 'text-white/60'}`}
+            className={`w-4 h-4 ${isFormClass ? 'text-gold' : 'text-gray-500'}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -76,46 +87,67 @@ function ClassCard({ classroom }) {
           </svg>
         </div>
         <span
-          className={`text-[9px] font-bold tracking-wide uppercase ${
-            isFormClass ? 'text-gold' : 'text-white/40'
+          className={`text-[9px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full ${
+            isFormClass ? 'bg-amber-50 text-amber-800' : 'bg-gray-100 text-gray-500'
           }`}
         >
-          {isFormClass ? 'Form Master' : 'Subject'}
-        </span>
-        <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-white/50 flex-shrink-0">
-          {classroom.class_level}
+          {isFormClass ? 'Form Master' : classroom.class_level}
         </span>
       </div>
 
-      <div className="font-serif text-white font-bold text-sm mb-3 truncate">
-        {classroom.full_name}
-      </div>
+      <div className="text-[15px] font-semibold text-navy mb-1">{classroom.full_name}</div>
+      <div className="text-xs text-gray-500 leading-relaxed mb-3">{subjectNames}</div>
 
-      <div className="flex gap-5 mb-3.5">
-        <div>
-          <div className="text-white text-xl font-bold leading-none">{classroom.student_count}</div>
-          <div className="text-[9px] text-white/40 tracking-wide uppercase mt-0.5">Students</div>
+      {attendanceDue ? (
+        <div className="flex items-center justify-between px-3 py-2.5 mb-2 bg-gray-50 border-l-[3px] border-gold">
+          <div>
+            <div className="text-xs font-semibold text-navy">Morning register</div>
+            <div className="text-[11px] text-gray-400">Not taken today</div>
+          </div>
+          <span className="text-gray-400">{chevron}</span>
         </div>
-        <div>
-          <div className="text-white text-xl font-bold leading-none">{subjectCount}</div>
-          <div className="text-[9px] text-white/40 tracking-wide uppercase mt-0.5">
-            Subject{subjectCount !== 1 ? 's' : ''}
+      ) : unmarkedCount > 0 ? (
+        <div className="flex items-center justify-between px-3 py-2.5 mb-2 bg-red-50 border-l-[3px] border-red-700">
+          <div>
+            <div className="text-xs font-semibold text-red-900">Work awaiting marks</div>
+            <div className="text-[11px] text-red-700">{unmarkedCount} unmarked</div>
+          </div>
+          <span className="text-red-700">{chevron}</span>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between px-3 py-2.5 mb-2 bg-gray-50 border-l-[3px] border-gray-200">
+          <div className="text-xs text-gray-400">Nothing outstanding</div>
+          <span className="text-gray-300">{chevron}</span>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between pt-1 mt-auto">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-gray-500">
+            {classroom.student_count} student{classroom.student_count !== 1 ? 's' : ''}
+          </span>
+          <div className="flex">
+            {preview.map((s, i) => (
+              <div
+                key={s.id}
+                className="w-[22px] h-[22px] rounded-full border-2 border-white flex items-center justify-center text-[9px] font-semibold text-white"
+                style={{ backgroundColor: colorFor(s.id), marginLeft: i === 0 ? 0 : '-7px' }}
+                title={s.name}
+              >
+                {initialsOf(s.name)}
+              </div>
+            ))}
+            {remaining > 0 && (
+              <div
+                className="w-[22px] h-[22px] rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-[9px] font-semibold text-gray-500"
+                style={{ marginLeft: '-7px' }}
+              >
+                +{remaining}
+              </div>
+            )}
           </div>
         </div>
-      </div>
-
-      <div className="mt-auto">
-        {attendanceDue ? (
-          <span className="inline-block text-[10px] font-bold px-2.5 py-1 rounded-md bg-gold text-navy">
-            Attendance due
-          </span>
-        ) : unmarkedCount > 0 ? (
-          <span className="inline-block text-[10px] font-bold px-2.5 py-1 rounded-md bg-red-200 text-red-900">
-            {unmarkedCount} unmarked
-          </span>
-        ) : (
-          <span className="inline-block text-[10px] text-white/25 py-1">Nothing due</span>
-        )}
+        <span className="text-gray-300 w-3.5 h-3.5 flex items-center">{chevron}</span>
       </div>
     </Link>
   )
@@ -159,7 +191,7 @@ function TeacherPortal() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-10">
           {classrooms.map((classroom) => (
             <ClassCard key={classroom.id} classroom={classroom} />
           ))}
@@ -171,18 +203,18 @@ function TeacherPortal() {
           {crossCutting.map((tile) => (
             <div
               key={tile.key}
-              className={`relative overflow-hidden bg-gradient-to-br ${tile.gradient} rounded-xl p-4 min-h-[165px] flex flex-col`}
+              className={`relative overflow-hidden bg-gradient-to-br ${tile.gradient} rounded-xl p-3.5 min-h-[128px] flex flex-col`}
             >
-              <div className="w-9 h-9 rounded-lg bg-white/15 backdrop-blur-sm flex items-center justify-center mb-3">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-7 h-7 rounded-lg bg-white/15 backdrop-blur-sm flex items-center justify-center mb-2">
+                <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={tile.icon} />
                 </svg>
               </div>
 
               <div className="font-serif text-sm font-bold text-white mb-1">{tile.title}</div>
-              <div className="text-[11px] text-white/70 leading-relaxed mb-3 flex-1">{tile.desc}</div>
+              <div className="text-[10px] text-white/70 leading-snug mb-2 flex-1">{tile.desc}</div>
 
-              <div className="flex flex-wrap gap-1 mb-2.5">
+              <div className="flex flex-wrap gap-1">
                 {tile.tags.map((tag) => (
                   <span
                     key={tag}
@@ -191,11 +223,7 @@ function TeacherPortal() {
                     {tag}
                   </span>
                 ))}
-              </div>
-
-              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/15 text-white/80 self-start">
-                {tile.available ? 'Open' : 'Coming Soon'}
-              </span>
+                            </div>
             </div>
           ))}
         </div>
