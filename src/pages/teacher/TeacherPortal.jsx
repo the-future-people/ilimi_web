@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import PortalHeader from '../../components/layout/PortalHeader'
 import { getMyClassrooms } from '../../api/academics'
 
@@ -67,14 +69,14 @@ function ClassCard({ classroom }) {
   return (
     <Link
       to={`/teacher/classroom/${classroom.id}`}
-        className={`bg-white rounded-xl p-3 flex flex-col transition-all hover:shadow-lg border-2 ${
+      className={`bg-white rounded-xl p-3 flex flex-col transition-all hover:shadow-lg border-2 ${
         isFormClass ? 'border-gold' : 'border-gray-300'
       }`}
     >
-            <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-2">
         <div
-          className={`w-7 h-7 rounded-lg border-[1.5px] flex items-center justify-center ${
-            isFormClass ? 'border-gold' : 'border-gray-300'
+          className={`w-[26px] h-[26px] rounded-lg border-[1.5px] flex items-center justify-center ${
+            isFormClass ? 'border-gold' : 'border-gray-400'
           }`}
         >
           <svg
@@ -153,7 +155,37 @@ function ClassCard({ classroom }) {
   )
 }
 
+function ViewToggle({ view, setView }) {
+  const options = [
+    { key: 'load', label: 'My teaching load' },
+    { key: 'extras', label: 'Extras' },
+  ]
+
+  return (
+    <div className="inline-flex bg-gray-200/70 rounded-full p-[3px] relative">
+      {options.map((opt) => (
+        <button
+          key={opt.key}
+          onClick={() => setView(opt.key)}
+          className="relative px-4 py-1.5 text-xs font-semibold rounded-full transition-colors z-10"
+        >
+          {view === opt.key && (
+            <motion.div
+              layoutId="portal-toggle-thumb"
+              className="absolute inset-0 bg-navy rounded-full -z-10"
+              transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+            />
+          )}
+          <span className={view === opt.key ? 'text-white' : 'text-gray-500'}>{opt.label}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function TeacherPortal() {
+  const [view, setView] = useState('load')
+
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['my-classrooms'],
     queryFn: getMyClassrooms,
@@ -166,67 +198,86 @@ function TeacherPortal() {
     <div className="min-h-screen">
       <PortalHeader />
 
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-8">
 
-        <div className="flex items-baseline justify-between mb-3">
-          <h2 className="font-serif text-lg font-bold text-navy">My Teaching Load</h2>
-          <span className="text-xs text-gray-400">
-            {classrooms.length} class{classrooms.length !== 1 ? 'es' : ''} · {totalSubjects} subject{totalSubjects !== 1 ? 's' : ''}
-          </span>
+        <div className="flex items-center justify-between mb-4 gap-3">
+          <ViewToggle view={view} setView={setView} />
+          {view === 'load' && (
+            <span className="text-xs text-gray-400 whitespace-nowrap">
+              {classrooms.length} class{classrooms.length !== 1 ? 'es' : ''} · {totalSubjects} subject{totalSubjects !== 1 ? 's' : ''}
+            </span>
+          )}
         </div>
 
-        {isLoading && (
-          <div className="text-center py-16 text-gray-400 text-sm">Loading your classes...</div>
-        )}
-
-        {isError && (
-          <div className="text-center py-16 text-red-500 text-sm">
-            Failed to load classes: {error?.response?.data?.message || error.message}
-          </div>
-        )}
-
-        {!isLoading && !isError && classrooms.length === 0 && (
-          <div className="text-center py-16 text-gray-400 text-sm">
-            No classes assigned to you yet.
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mb-10">
-          {classrooms.map((classroom) => (
-            <ClassCard key={classroom.id} classroom={classroom} />
-          ))}
-        </div>
-
-        <h2 className="font-serif text-lg font-bold text-navy mb-3">Everything Else</h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {crossCutting.map((tile) => (
-            <div
-              key={tile.key}
-              className={`relative overflow-hidden bg-gradient-to-br ${tile.gradient} rounded-xl p-3.5 min-h-[128px] flex flex-col`}
+        <AnimatePresence mode="wait">
+          {view === 'load' ? (
+            <motion.div
+              key="load"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
             >
-              <div className="w-7 h-7 rounded-lg bg-white/15 backdrop-blur-sm flex items-center justify-center mb-2">
-                <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={tile.icon} />
-                </svg>
-              </div>
+              {isLoading && (
+                <div className="text-center py-16 text-gray-400 text-sm">Loading your classes...</div>
+              )}
 
-              <div className="font-serif text-sm font-bold text-white mb-1">{tile.title}</div>
-              <div className="text-[10px] text-white/70 leading-snug mb-2 flex-1">{tile.desc}</div>
+              {isError && (
+                <div className="text-center py-16 text-red-500 text-sm">
+                  Failed to load classes: {error?.response?.data?.message || error.message}
+                </div>
+              )}
 
-              <div className="flex flex-wrap gap-1">
-                {tile.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-white/15 text-white backdrop-blur-sm"
-                  >
-                    {tag}
-                  </span>
+              {!isLoading && !isError && classrooms.length === 0 && (
+                <div className="text-center py-16 text-gray-400 text-sm">
+                  No classes assigned to you yet.
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {classrooms.map((classroom) => (
+                  <ClassCard key={classroom.id} classroom={classroom} />
                 ))}
-                            </div>
-            </div>
-          ))}
-        </div>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="extras"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
+            >
+              {crossCutting.map((tile) => (
+                <div
+                  key={tile.key}
+                  className={`relative overflow-hidden bg-gradient-to-br ${tile.gradient} rounded-xl p-3.5 min-h-[128px] flex flex-col`}
+                >
+                  <div className="w-7 h-7 rounded-lg bg-white/15 backdrop-blur-sm flex items-center justify-center mb-2">
+                    <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={tile.icon} />
+                    </svg>
+                  </div>
+
+                  <div className="font-serif text-sm font-bold text-white mb-1">{tile.title}</div>
+                  <div className="text-[10px] text-white/70 leading-snug mb-2 flex-1">{tile.desc}</div>
+
+                  <div className="flex flex-wrap gap-1">
+                    {tile.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-white/15 text-white backdrop-blur-sm"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
       </div>
     </div>
