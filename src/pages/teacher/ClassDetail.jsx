@@ -9,12 +9,42 @@ import AttendancePanel from './AttendancePanel'
 import CAScoresPanel from './CAScoresPanel'
 
 const tabs = [
-  { key: 'today', label: 'Today', available: true },
-  { key: 'attendance', label: 'Attendance', available: true },
-  { key: 'classwork', label: 'Classwork', available: true },
-  { key: 'lesson-notes', label: 'Lesson Notes', available: false },
-  { key: 'reports', label: 'Reports', available: false },
-  { key: 'roster', label: 'Roster', available: true },
+  {
+    key: 'today',
+    label: 'Today',
+    available: true,
+    icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+  },
+  {
+    key: 'attendance',
+    label: 'Attendance',
+    available: true,
+    icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
+  },
+  {
+    key: 'classwork',
+    label: 'Classwork',
+    available: true,
+    icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z',
+  },
+  {
+    key: 'lesson-notes',
+    label: 'Lesson Notes',
+    available: false,
+    icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253',
+  },
+  {
+    key: 'reports',
+    label: 'Reports',
+    available: false,
+    icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+  },
+  {
+    key: 'roster',
+    label: 'Roster',
+    available: true,
+    icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
+  },
 ]
 
 const chevron = (
@@ -48,9 +78,16 @@ function TodayPanel({ classroom, studentCount, onGo }) {
           onClick={() => onGo('attendance')}
           className="w-full flex items-center justify-between px-4 py-3.5 mb-2.5 bg-navy rounded-xl text-left hover:shadow-lg transition"
         >
-          <div>
-            <div className="text-sm font-semibold text-white">Attendance not taken</div>
-            <div className="text-[11px] text-white/50 mt-0.5">Morning register still open</div>
+            <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-white">Attendance not taken</div>
+              <div className="text-[11px] text-white/50 mt-0.5">Morning register still open</div>
+            </div>
           </div>
           <span className="text-[11px] font-bold bg-gold text-navy px-3.5 py-2 rounded-lg flex-shrink-0">
             Take register
@@ -63,10 +100,17 @@ function TodayPanel({ classroom, studentCount, onGo }) {
           onClick={() => onGo('classwork')}
           className="w-full flex items-center justify-between px-4 py-3.5 mb-2.5 bg-red-50 rounded-xl text-left hover:shadow-md transition border border-red-200"
         >
-          <div>
-            <div className="text-sm font-semibold text-red-900">Work awaiting marks</div>
-            <div className="text-[11px] text-red-700 mt-0.5">
-              {unmarkedCount} student record{unmarkedCount !== 1 ? 's' : ''} still unmarked
+                    <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-red-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h-6m6 4h-6" />
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-red-900">Work awaiting marks</div>
+              <div className="text-[11px] text-red-700 mt-0.5">
+                {unmarkedCount} student record{unmarkedCount !== 1 ? 's' : ''} still unmarked
+              </div>
             </div>
           </div>
           <span className="text-[11px] font-bold border border-red-700 text-red-900 px-3.5 py-2 rounded-lg flex-shrink-0">
@@ -175,7 +219,10 @@ function ClassDetail() {
                       : 'border-transparent text-gray-300 cursor-not-allowed'
                   }`}
                 >
-                  {tab.label}
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={tab.icon} />
+                  </svg>
+                  <span className="hidden sm:inline">{tab.label}</span>
                   {!tab.available && (
                     <span className="text-[9px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full">Soon</span>
                   )}
