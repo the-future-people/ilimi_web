@@ -7,11 +7,13 @@ import { getStudentsByClassroom } from '../../api/students'
 import { getMyClassrooms } from '../../api/academics'
 import AttendancePanel from './AttendancePanel'
 import CAScoresPanel from './CAScoresPanel'
+import AssignmentsPanel from './AssignmentsPanel'
 
 const tabs = [
   { key: 'roster', label: 'Student Roster', available: true },
   { key: 'attendance', label: 'Attendance', available: true },
-  { key: 'ca-scores', label: 'CA Scores', available: true },
+    { key: 'ca-scores', label: 'CA Scores', available: true },
+  { key: 'assignments', label: 'Assignments', available: true },
 ]
 
 function ClassDetail() {
@@ -235,7 +237,19 @@ function ClassDetail() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15, ease: 'easeInOut' }}
             >
-              <CAScoresPanel classroomId={classroomId} subjects={currentClassroom.subjects} />
+                            <CAScoresPanel classroomId={classroomId} subjects={currentClassroom.subjects} />
+            </motion.div>
+          )}
+
+          {activeTab === 'assignments' && currentClassroom && (
+            <motion.div
+              key="assignments"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15, ease: 'easeInOut' }}
+            >
+              <AssignmentsPanel subjects={currentClassroom.subjects} />
             </motion.div>
           )}
           </AnimatePresence>
