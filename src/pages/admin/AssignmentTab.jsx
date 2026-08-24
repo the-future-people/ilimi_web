@@ -173,8 +173,8 @@ function AssignedSubjectRow({ assignment, staff, onReassign, onRemove, flashed }
           title="Reassign"
         >
           <option value="">Change...</option>
-          {staff.map((s) => (
-            <option key={s.id} value={s.id}>{s.full_name}</option>
+                    {staff.map((s) => (
+            <option key={s.id} value={s.school_member_id}>{s.full_name}</option>
           ))}
         </select>
         <button onClick={() => onRemove(assignment.id)} className="text-gray-300 hover:text-red-500 transition" title="Remove">
@@ -191,6 +191,7 @@ function ClassroomAssignmentCard({ classroom, termId, subjects, staff, assignmen
   const [expanded, setExpanded] = useState(false)
   const [savingFormTeacher, setSavingFormTeacher] = useState(false)
   const [flashedId, setFlashedId] = useState(null)
+  const [conflict, setConflict] = useState(null)
 
   const assignments = assignmentsByClassroom[classroom.id] || []
   const assignedSubjectIds = new Set(assignments.map((a) => a.subject))
@@ -204,13 +205,26 @@ function ClassroomAssignmentCard({ classroom, termId, subjects, staff, assignmen
     setTimeout(() => setFlashedId(null), 900)
   }
 
-  const handleFormTeacherChange = async (teacherId) => {
+    const handleFormTeacherChange = async (teacherId, reassign = false) => {
+    const name = staff.find((s) => String(s.school_member_id) === String(teacherId))?.full_name
+
     setSavingFormTeacher(true)
     try {
-      await updateClassroom(classroom.id, { form_teacher: teacherId })
+      await updateClassroom(classroom.id, {
+        form_teacher: teacherId,
+        ...(reassign ? { reassign: true } : {}),
+      })
       await refetch()
-      const name = staff.find((s) => String(s.school_member_id) === String(teacherId))?.full_name
       toast.push(name ? `${name} set as form teacher` : 'Form teacher updated')
+    } catch (err) {
+      const errors = err.response?.data?.errors
+      const conflictClass = errors?.conflict_classroom?.[0]
+
+      if (conflictClass && !reassign) {
+        setConflict({ teacherId, name, currentClass: conflictClass })
+      } else {
+        toast.push(errors?.form_teacher?.[0] || 'Could not set form teacher')
+      }
     } finally {
       setSavingFormTeacher(false)
     }
@@ -315,6 +329,40 @@ function ClassroomAssignmentCard({ classroom, termId, subjects, staff, assignmen
                   ))}
                 </div>
               )}
+            </div>
+                    </div>
+        </div>
+      )}
+
+      {conflict && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          onClick={() => setConflict(null)}
+        >
+          <div className="bg-white rounded-2xl p-5 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="font-serif text-lg font-bold text-navy mb-2">Move form master?</div>
+            <p className="text-sm text-gray-600 leading-relaxed mb-1">
+              You are assigning <span className="font-semibold text-navy">{classroom.full_name}</span> to{' '}
+              <span className="font-semibold text-navy">{conflict.name}</span>.
+            </p>
+            <p className="text-sm text-gray-600 leading-relaxed mb-4">
+              They are currently the form master of{' '}
+              <span className="font-semibold text-navy">{conflict.currentClass}</span>, and will be
+              released from that class. Is that correct?
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setConflict(null); toast.push('Form assignment restrained') }}
+                className="flex-1 bg-gray-100 text-gray-600 text-sm font-bold py-2.5 rounded-lg hover:bg-gray-200 transition"
+              >
+                No
+              </button>
+              <button
+                onClick={() => { const c = conflict; setConflict(null); handleFormTeacherChange(c.teacherId, true) }}
+                className="flex-1 bg-navy text-white text-sm font-bold py-2.5 rounded-lg hover:bg-navy-light transition"
+              >
+                Yes, move them
+              </button>
             </div>
           </div>
         </div>
