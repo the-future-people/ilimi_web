@@ -69,12 +69,7 @@ function StaffTabs() {
           },
         ]} />
 
-        <div className="mb-6">
-          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-navy">Teachers &amp; Staff</h1>
-          <p className="text-sm text-gray-400 mt-1">
-            {activeMember?.school_name} · {totalCount} staff member{totalCount !== 1 ? 's' : ''} on record
-          </p>
-        </div>
+        
 
         <div className="flex items-center gap-1 border-b border-gray-200 mb-6 overflow-x-auto">
           {TABS.map((t) => (
