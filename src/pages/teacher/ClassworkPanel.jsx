@@ -649,47 +649,7 @@ function ClassworkPanel({ classroomId, subjects = [] }) {
         </div>
       )}
 
-      {active.length > 0 && (
-        <>
-          <div className="text-xs font-semibold text-gray-500 mt-4 mb-1.5">
-            Active · {active.length}
-          </div>
-          {active.map((item) => (
-            <WorkCard key={item.id} item={item} onMark={setMarkingId} />
-          ))}
-        </>
-      )}
-
-      {earlier.length > 0 && (
-        <div className="mt-4">
-          <button
-            onClick={() => setShowEarlier((v) => !v)}
-            className="w-full flex items-center justify-between px-3 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition"
-          >
-            <span className="text-xs text-gray-500">
-              Earlier this term · {earlier.length} completed
-            </span>
-            <span className="text-xs text-navy font-semibold flex items-center gap-1">
-              {showEarlier ? 'Hide' : 'Show'}
-              <svg
-                className={`w-3.5 h-3.5 transition-transform ${showEarlier ? 'rotate-180' : ''}`}
-                fill="none" stroke="currentColor" viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </span>
-          </button>
-          {showEarlier && (
-            <div className="mt-1.5">
-              {earlier.map((item) => (
-                <WorkCard key={item.id} item={item} onMark={setMarkingId} />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {toast && (
+            {toast && (
         <div className="fixed bottom-6 right-6 bg-navy text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-lg z-50 border-l-4 border-gold">
           {toast}
         </div>
