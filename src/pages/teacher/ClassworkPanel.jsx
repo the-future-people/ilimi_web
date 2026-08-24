@@ -208,6 +208,9 @@ function MarkScreen({ classworkId, onBack }) {
   const classwork = data?.data?.classwork
   const records = data?.data?.records || []
   const isGraded = classwork?.is_graded
+  const maxScore = classwork?.max_score !== undefined && classwork?.max_score !== null
+    ? Number(classwork.max_score)
+    : null
 
   const mutation = useMutation({
     mutationFn: (payload) => markClasswork(classworkId, payload),
@@ -219,6 +222,7 @@ function MarkScreen({ classworkId, onBack }) {
       queryClient.invalidateQueries({ queryKey: ['my-classrooms'] })
       setTimeout(() => setToast(''), 3000)
     },
+    onError: (err) => setToast(err.response?.data?.message || 'Could not save.'),
   })
 
   const setEdit = (recordId, patch) =>
@@ -227,7 +231,19 @@ function MarkScreen({ classworkId, onBack }) {
   const valueFor = (record, field) =>
     edits[record.id]?.[field] !== undefined ? edits[record.id][field] : record[field]
 
+  const scoreError = (value) => {
+    if (value === null || value === '' || value === undefined) return null
+    const n = Number(value)
+    if (Number.isNaN(n)) return 'Number only'
+    if (n < 0) return 'Cannot be negative'
+    if (maxScore !== null && n > maxScore) return `Max ${fmtScore(maxScore)}`
+    return null
+  }
+
+  const invalidCount = records.filter((r) => scoreError(valueFor(r, 'score'))).length
+
   const save = () => {
+    if (invalidCount > 0) return
     const payload = Object.entries(edits).map(([id, patch]) => ({
       record_id: Number(id),
       ...patch,
@@ -255,7 +271,7 @@ function MarkScreen({ classworkId, onBack }) {
           Back
         </button>
         <span className={`text-[9px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full ${
-          isGraded ? 'bg-red-100 text-red-900' : 'bg-gray-100 text-gray-600'
+          isGraded ? 'bg-amber-100 text-amber-900' : 'bg-gray-100 text-gray-600'
         }`}>
           {classwork?.work_type_display} · {isGraded ? 'Counts' : 'Ungraded'}
         </span>
@@ -264,7 +280,7 @@ function MarkScreen({ classworkId, onBack }) {
       <div className="text-base font-semibold text-navy">{classwork?.name}</div>
       <div className="text-[11px] text-gray-500 mb-4">
         {isGraded
-          ? `Out of ${classwork.max_score} · feeds ${classwork.component_type_name} (${classwork.component_weight}%)`
+          ? `Out of ${fmtScore(maxScore)} · feeds ${classwork.component_type_name} (${fmtScore(classwork.component_weight)}%)`
           : 'Tap done or not done for each student'}
       </div>
 
@@ -273,20 +289,24 @@ function MarkScreen({ classworkId, onBack }) {
           const status = valueFor(record, 'status')
           const score = valueFor(record, 'score')
           const isExcused = status === 'excused'
+          const err = isExcused ? null : scoreError(score)
 
           return (
-            <div key={record.id} className="flex items-center justify-between gap-3 py-2.5">
+            <div
+              key={record.id}
+              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-2.5"
+            >
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-7 h-7 rounded-full bg-navy flex items-center justify-center text-[9px] font-bold text-white overflow-hidden flex-shrink-0">
                   {record.student_photo
                     ? <img src={record.student_photo} alt="" className="w-full h-full object-cover" />
                     : initialsOf(record.student_name)}
                 </div>
-                <span className="text-sm text-navy truncate">{record.student_name}</span>
+                <span className="text-sm text-navy">{record.student_name}</span>
               </div>
 
               {isGraded ? (
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-shrink-0 pl-9 sm:pl-0">
                   <button
                     onClick={() => setEdit(record.id, isExcused ? { status: 'not_done' } : { status: 'excused', score: null })}
                     className={`text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border transition ${
@@ -295,20 +315,29 @@ function MarkScreen({ classworkId, onBack }) {
                   >
                     Absent
                   </button>
-                  <input
-                    type="number"
-                    min={0}
-                    max={classwork.max_score}
-                    disabled={isExcused}
-                    value={score ?? ''}
-                    onChange={(e) => setEdit(record.id, { score: e.target.value === '' ? null : Number(e.target.value) })}
-                    placeholder="—"
-                    className="w-[62px] px-2 py-1.5 border border-gray-200 rounded-lg text-sm text-center outline-none focus:border-gold disabled:bg-gray-50"
-                  />
-                  <span className="text-[11px] text-gray-400 w-8">/ {classwork.max_score}</span>
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min={0}
+                        max={maxScore ?? undefined}
+                        disabled={isExcused}
+                        value={score === null || score === undefined ? '' : fmtScore(score)}
+                        onChange={(e) =>
+                          setEdit(record.id, { score: e.target.value === '' ? null : Number(e.target.value) })
+                        }
+                        placeholder="—"
+                        className={`w-[62px] px-2 py-1.5 border rounded-lg text-sm text-center outline-none disabled:bg-gray-50 ${
+                          err ? 'border-red-400 bg-red-50 text-red-700' : 'border-gray-200 focus:border-gold'
+                        }`}
+                      />
+                      <span className="text-[11px] text-gray-400">/ {fmtScore(maxScore)}</span>
+                    </div>
+                    {err && <span className="text-[10px] text-red-600 mt-0.5">{err}</span>}
+                  </div>
                 </div>
               ) : (
-                <div className="flex gap-1.5 flex-shrink-0">
+                <div className="flex gap-1.5 flex-shrink-0 pl-9 sm:pl-0">
                   <button
                     onClick={() => setEdit(record.id, { status: 'done' })}
                     className={`text-[11px] font-semibold px-3 py-1.5 rounded-lg border transition ${
@@ -332,14 +361,17 @@ function MarkScreen({ classworkId, onBack }) {
         })}
       </div>
 
-      <div className="flex items-center justify-between border-t border-gray-200 mt-3 pt-3">
+      <div className="flex items-center justify-between gap-3 border-t border-gray-200 mt-3 pt-3">
         <span className="text-[11px] text-gray-500">
           {markedCount} of {records.length} marked
           {dirtyCount > 0 && <span className="text-gold font-semibold"> · {dirtyCount} unsaved</span>}
+          {invalidCount > 0 && (
+            <span className="text-red-600 font-semibold"> · {invalidCount} out of range</span>
+          )}
         </span>
         <button
           onClick={save}
-          disabled={dirtyCount === 0 || mutation.isPending}
+          disabled={dirtyCount === 0 || invalidCount > 0 || mutation.isPending}
           className="text-xs font-bold text-white bg-navy rounded-lg px-5 py-2 hover:bg-navy-light transition disabled:opacity-40"
         >
           {mutation.isPending ? 'Saving...' : 'Save'}
