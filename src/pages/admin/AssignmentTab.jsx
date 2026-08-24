@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { motion } from 'framer-motion'
 import {
   getSetupStatus, getSchoolClassrooms, getAssignments,
   createAssignment, updateAssignment, deleteAssignment, getSubjects,
@@ -7,18 +8,20 @@ import {
 } from '../../api/academics'
 import { getAllStaff } from '../../api/staff'
 
-const BAND_LABELS = { early: 'Early Years', primary: 'Primary', jhs: 'JHS' }
-const BAND_ORDER = ['early', 'primary', 'jhs']
-
-const BAND_WASH = {
-  early: 'bg-amber-50/60',
-  primary: 'bg-blue-50/60',
-  jhs: 'bg-purple-50/60',
+const BAND_LABELS = {
+  early: 'Nursery & KG',
+  lower: 'Lower primary',
+  upper: 'Upper primary',
+  jhs: 'JHS',
 }
+const BAND_ORDER = ['early', 'lower', 'upper', 'jhs']
+
+const LOWER_PRIMARY = ['primary_1', 'primary_2', 'primary_3']
 
 const groupFor = (levelName = '') => {
   if (levelName.startsWith('nursery') || levelName.startsWith('kindergarten')) return 'early'
-  if (levelName.startsWith('primary')) return 'primary'
+  if (LOWER_PRIMARY.includes(levelName)) return 'lower'
+  if (levelName.startsWith('primary')) return 'upper'
   return 'jhs'
 }
 
@@ -355,6 +358,7 @@ function UpperBandCard({ classroom, termId, subjects, staff, assignments, onChan
 function AssignmentTab() {
   const queryClient = useQueryClient()
   const toast = useToast()
+  const [activeGroup, setActiveGroup] = useState(null)
 
   const { data: setupData } = useQuery({ queryKey: ['year-setup-status'], queryFn: getSetupStatus })
   const termId = setupData?.data?.academic_year?.current_term?.id
@@ -402,6 +406,22 @@ function AssignmentTab() {
       .map((g) => ({ group: g, label: BAND_LABELS[g], classrooms: byGroup[g] }))
   }, [classrooms])
 
+  const gapsByGroup = useMemo(() => {
+    const counts = {}
+    for (const g of groups) {
+      counts[g.group] = g.classrooms.filter((c) => {
+        if (c.band === 'lower') return !c.form_teacher
+        const rows = assignmentsByClassroom[c.id] || []
+        const assigned = new Set(rows.filter((a) => a.teacher).map((a) => a.subject))
+        return !c.form_teacher || allSubjects.some((s) => !assigned.has(s.id))
+      }).length
+    }
+    return counts
+  }, [groups, assignmentsByClassroom, allSubjects])
+
+  const currentGroup = activeGroup || groups[0]?.group
+  const visibleClassrooms = groups.find((g) => g.group === currentGroup)?.classrooms || []
+
   const onChanged = async () => {
     await queryClient.invalidateQueries({ queryKey: ['assignments', termId] })
     await queryClient.invalidateQueries({ queryKey: ['school-classrooms'] })
@@ -425,40 +445,64 @@ function AssignmentTab() {
   return (
     <>
       <toast.ToastStack />
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-4">
         <div className="text-xs text-gray-400">
           Nursery to Primary 3 have one teacher for every subject. From Primary 4 up, assign each
           subject and a form master, for{' '}
           {setupData?.data?.academic_year?.current_term?.name_display || 'the current term'}.
         </div>
 
-        {groups.map((group) => (
-          <div key={group.group} className={`${BAND_WASH[group.group]} rounded-2xl p-4 sm:p-5`}>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="text-sm font-bold text-navy">{group.label}</div>
-              <div className="text-xs text-gray-400">
-                {group.classrooms.length} class{group.classrooms.length !== 1 ? 'es' : ''}
-              </div>
-            </div>
-            <div className="flex flex-col gap-3">
-              {group.classrooms.map((c) => {
-                const props = {
-                  classroom: c,
-                  termId,
-                  staff,
-                  assignments: assignmentsByClassroom[c.id] || [],
-                  onChanged,
-                  toast,
-                }
-                return c.band === 'lower' ? (
-                  <LowerBandCard key={c.id} {...props} subjects={coreSubjects} />
-                ) : (
-                  <UpperBandCard key={c.id} {...props} subjects={allSubjects} />
-                )
-              })}
-            </div>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="inline-flex bg-gray-200/70 rounded-full p-[3px] relative overflow-x-auto no-scrollbar">
+            {groups.map((g) => (
+              <button
+                key={g.group}
+                onClick={() => setActiveGroup(g.group)}
+                className="relative px-3.5 py-1.5 text-xs font-semibold rounded-full transition-colors z-10 whitespace-nowrap"
+              >
+                {currentGroup === g.group && (
+                  <motion.div
+                    layoutId="assignment-group-thumb"
+                    className="absolute inset-0 bg-navy rounded-full -z-10"
+                    transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                  />
+                )}
+                <span className={currentGroup === g.group ? 'text-white' : 'text-gray-500'}>
+                  {g.label}
+                </span>
+                {gapsByGroup[g.group] > 0 && (
+                  <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-amber-500 align-middle" />
+                )}
+              </button>
+            ))}
           </div>
-        ))}
+
+          {gapsByGroup[currentGroup] > 0 ? (
+            <span className="text-xs font-semibold text-amber-700 whitespace-nowrap">
+              {gapsByGroup[currentGroup]} class{gapsByGroup[currentGroup] !== 1 ? 'es' : ''} need a teacher
+            </span>
+          ) : (
+            <span className="text-xs text-green-700 whitespace-nowrap">All assigned</span>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-3">
+          {visibleClassrooms.map((c) => {
+            const props = {
+              classroom: c,
+              termId,
+              staff,
+              assignments: assignmentsByClassroom[c.id] || [],
+              onChanged,
+              toast,
+            }
+            return c.band === 'lower' ? (
+              <LowerBandCard key={c.id} {...props} subjects={coreSubjects} />
+            ) : (
+              <UpperBandCard key={c.id} {...props} subjects={allSubjects} />
+            )
+          })}
+        </div>
       </div>
     </>
   )
