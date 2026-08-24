@@ -98,3 +98,8 @@ export const setClassTeacher = async (classroomId, payload) => {
   const res = await api.post(`/academics/classrooms/${classroomId}/class-teacher/`, payload)
   return res.data
 }
+
+export const getClassroomOverview = async (classroomId) => {
+  const res = await api.get(`/staff/classrooms/${classroomId}/overview/`)
+  return res.data
+}

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import PortalHeader from '../../components/layout/PortalHeader'
 import { getStudentsByClassroom } from '../../api/students'
-import { getMyClassrooms } from '../../api/academics'
+import { getMyClassrooms, getClassroomOverview } from '../../api/academics'
 import AttendancePanel from './AttendancePanel'
 import CAScoresPanel from './CAScoresPanel'
 import ClassworkPanel from './ClassworkPanel'
@@ -12,7 +12,7 @@ import ClassworkPanel from './ClassworkPanel'
 const tabs = [
   {
     key: 'today',
-    label: 'Today',
+    label: 'Overview',
     available: true,
     icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
   },
@@ -54,43 +54,99 @@ const chevron = (
   </svg>
 )
 
-function TodayPanel({ classroom, studentCount, onGo }) {
+const AVATAR_COLORS = ['#378ADD', '#D4537E', '#1D9E75', '#7F77DD', '#BA7517']
+const colorFor = (id) => AVATAR_COLORS[id % AVATAR_COLORS.length]
+const initialsOf = (name) =>
+  name.split(' ').filter(Boolean).map((n) => n[0]).slice(0, 2).join('').toUpperCase()
+
+function PersonRow({ id, name, right, rightClass = 'text-gray-400' }) {
+  return (
+    <div className="flex items-center gap-2 py-1">
+      <div
+        className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0"
+        style={{ backgroundColor: colorFor(id) }}
+      >
+        {initialsOf(name)}
+      </div>
+      <span className="text-xs text-navy truncate">{name}</span>
+      <span className={`text-[11px] ml-auto flex-shrink-0 ${rightClass}`}>{right}</span>
+    </div>
+  )
+}
+
+function PendingPanel({ icon, title, value, unit, note }) {
+  return (
+    <div className="bg-white border border-dashed border-gray-300 rounded-xl p-3.5">
+      <div className="flex items-center gap-1.5 mb-2">
+        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={icon} />
+        </svg>
+        <span className="text-[13px] font-semibold text-gray-500">{title}</span>
+      </div>
+      <div className="flex items-baseline gap-2 mb-1.5">
+        <span className="text-2xl font-bold text-gray-300">{value}</span>
+        <span className="text-xs text-gray-400">{unit}</span>
+      </div>
+      <div className="text-[11px] text-gray-400 leading-relaxed">{note}</div>
+    </div>
+  )
+}
+
+function TodayPanel({ classroom, classroomId, studentCount, onGo }) {
   const attendanceDue = classroom?.attendance_due === true
   const unmarkedCount = classroom?.unmarked_count || 0
   const isFormClass = classroom?.is_form_teacher === true
+  const subjectNames = (classroom?.subjects || []).map((s) => s.name).join(', ')
 
-  const today = new Date().toLocaleDateString('en-GB', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
+  const { data } = useQuery({
+    queryKey: ['classroom-overview', classroomId],
+    queryFn: () => getClassroomOverview(classroomId),
+    enabled: !!classroomId,
   })
 
-  const nothingDue = !attendanceDue && unmarkedCount === 0
+  const overview = data?.data
+  const away = overview?.away || []
+  const missing = overview?.missing_work || []
+  const registerTaken = overview?.register_taken
+
+  const todayLabel = new Date().toLocaleDateString('en-GB', {
+    weekday: 'long', day: 'numeric', month: 'long',
+  })
 
   return (
     <div className="p-4 sm:p-6">
-      <div className="text-xs text-gray-500 mb-5">
-        {today} · {studentCount} student{studentCount !== 1 ? 's' : ''}
-        {isFormClass && <span className="ml-2 text-[10px] font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-full uppercase">Form Master</span>}
+      <div className="flex items-center gap-2 flex-wrap text-xs text-gray-500 mb-4">
+        <span>{todayLabel}</span>
+        <span className="text-gray-300">·</span>
+        <span>{studentCount} student{studentCount !== 1 ? 's' : ''}</span>
+        {subjectNames && (
+          <>
+            <span className="text-gray-300">·</span>
+            <span>{subjectNames}</span>
+          </>
+        )}
+        {isFormClass && (
+          <span className="text-[10px] font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-full uppercase">
+            Form Master
+          </span>
+        )}
       </div>
 
       {attendanceDue && (
         <button
           onClick={() => onGo('attendance')}
-          className="w-full flex items-center justify-between px-4 py-3.5 mb-2.5 bg-navy rounded-xl text-left hover:shadow-lg transition"
+          className="w-full flex items-center justify-between gap-3 px-3.5 py-3 mb-2 bg-navy rounded-lg text-left hover:shadow-lg transition"
         >
-            <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4 text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-              </svg>
-            </div>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <svg className="w-5 h-5 text-gold flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
             <div className="min-w-0">
-              <div className="text-sm font-semibold text-white">Attendance not taken</div>
-              <div className="text-[11px] text-white/50 mt-0.5">Morning register still open</div>
+              <div className="text-[13px] font-semibold text-white">Attendance not taken</div>
+              <div className="text-[11px] text-white/50">Morning register still open</div>
             </div>
           </div>
-          <span className="text-[11px] font-bold bg-gold text-navy px-3.5 py-2 rounded-lg flex-shrink-0">
+          <span className="text-[11px] font-bold bg-gold text-navy px-3 py-1.5 rounded-lg flex-shrink-0">
             Take register
           </span>
         </button>
@@ -99,55 +155,109 @@ function TodayPanel({ classroom, studentCount, onGo }) {
       {unmarkedCount > 0 && (
         <button
           onClick={() => onGo('classwork')}
-          className="w-full flex items-center justify-between px-4 py-3.5 mb-2.5 bg-red-50 rounded-xl text-left hover:shadow-md transition border border-red-200"
+          className="w-full flex items-center justify-between gap-3 px-3.5 py-3 mb-2 bg-amber-50 border border-amber-200 rounded-lg text-left hover:shadow-md transition"
         >
-                    <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4 text-red-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h-6m6 4h-6" />
-              </svg>
-            </div>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <svg className="w-5 h-5 text-amber-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
             <div className="min-w-0">
-              <div className="text-sm font-semibold text-red-900">Work awaiting marks</div>
-              <div className="text-[11px] text-red-700 mt-0.5">
-                {unmarkedCount} student record{unmarkedCount !== 1 ? 's' : ''} still unmarked
+              <div className="text-[13px] font-semibold text-amber-950">
+                {unmarkedCount} record{unmarkedCount !== 1 ? 's' : ''} awaiting marks
               </div>
+              <div className="text-[11px] text-amber-800">Work is past its due date</div>
             </div>
           </div>
-          <span className="text-[11px] font-bold border border-red-700 text-red-900 px-3.5 py-2 rounded-lg flex-shrink-0">
-            Mark
+          <span className="text-[11px] font-bold bg-amber-600 text-white px-3 py-1.5 rounded-lg flex-shrink-0">
+            Go to classwork
           </span>
         </button>
       )}
 
-      {nothingDue && (
-        <div className="text-center py-10 px-4 bg-gray-50 rounded-xl mb-2.5">
-          <div className="text-sm font-semibold text-navy mb-1">Nothing outstanding</div>
-          <div className="text-xs text-gray-400">
-            Attendance is done and all work is marked.
-          </div>
+      {!attendanceDue && unmarkedCount === 0 && (
+        <div className="text-center py-6 px-4 bg-gray-50 rounded-lg mb-2">
+          <div className="text-sm font-semibold text-navy mb-0.5">Nothing outstanding</div>
+          <div className="text-xs text-gray-400">Attendance is done and all work is marked.</div>
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2 pt-4 mt-4 border-t border-gray-100">
-        <button
-          onClick={() => onGo('classwork')}
-          className="flex items-center gap-1.5 text-xs font-semibold text-navy border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50 transition"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-          </svg>
-          Set classwork
-        </button>
-        <button
-          onClick={() => onGo('roster')}
-          className="flex items-center gap-1.5 text-xs font-semibold text-navy border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50 transition"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          View roster
-        </button>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5 mt-4">
+        <div className="bg-white border border-gray-200 rounded-xl p-3.5">
+          <div className="flex items-center gap-1.5 mb-2.5">
+            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+            </svg>
+            <span className="text-[13px] font-semibold text-navy">Away today</span>
+            {registerTaken && (
+              <span className="text-[11px] text-gray-400 ml-auto">{away.length} of {studentCount}</span>
+            )}
+          </div>
+          {!registerTaken ? (
+            <div className="text-[11px] text-gray-400 py-2">
+              Take the register to see who is away.
+            </div>
+          ) : away.length === 0 ? (
+            <div className="text-[11px] text-green-700 py-2">Everyone is present today.</div>
+          ) : (
+            away.map((s) => (
+              <PersonRow
+                key={s.id}
+                id={s.id}
+                name={s.name}
+                right={s.status_display}
+                rightClass={s.status === 'late' ? 'text-amber-700' : 'text-gray-400'}
+              />
+            ))
+          )}
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-xl p-3.5">
+          <div className="flex items-center gap-1.5 mb-2.5">
+            <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.74-3L13.74 4a2 2 0 00-3.48 0L3.33 16a2 2 0 001.74 3z" />
+            </svg>
+            <span className="text-[13px] font-semibold text-navy">Missing work</span>
+            {missing.length > 0 && (
+              <span className="text-[11px] text-gray-400 ml-auto">
+                Last {overview?.tasks_considered} tasks
+              </span>
+            )}
+          </div>
+          {missing.length === 0 ? (
+            <div className="text-[11px] text-gray-400 py-2">
+              {(overview?.tasks_considered || 0) < 2
+                ? 'Not enough work marked yet to spot a pattern.'
+                : 'Everyone is keeping up with their work.'}
+            </div>
+          ) : (
+            missing.map((s) => (
+              <PersonRow
+                key={s.id}
+                id={s.id}
+                name={s.name}
+                right={`${s.missed} of ${s.of} missed`}
+                rightClass={s.missed >= s.of - 1 ? 'text-red-700 font-semibold' : 'text-amber-700'}
+              />
+            ))
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5 mt-2.5">
+        <PendingPanel
+          icon="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
+          title="Class average"
+          value="—"
+          unit="/ 100"
+          note="Appears once the term closes, with the change against the term before."
+        />
+        <PendingPanel
+          icon="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"
+          title="Falling behind"
+          value="—"
+          unit="students"
+          note="Flags pupils whose scores drop against their own earlier work. Needs one full term of marks."
+        />
       </div>
     </div>
   )
@@ -261,8 +371,9 @@ function ClassDetail() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15, ease: 'easeInOut' }}
             >
-              <TodayPanel
+            <TodayPanel
                 classroom={currentClassroom}
+                classroomId={classroomId}
                 studentCount={students.length}
                 onGo={setActiveTab}
               />
