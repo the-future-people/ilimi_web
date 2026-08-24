@@ -357,43 +357,96 @@ function MarkScreen({ classworkId, onBack }) {
 
 const fmtDate = (iso) => {
   if (!iso) return null
-  const d = new Date(iso)
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 
 const fmtScore = (n) => (n === null || n === undefined ? null : Number(n).toString())
 
-function WorkCard({ item, onMark, tone }) {
-  const urgent = tone === 'urgent'
-  const unmarked = item.unmarked_count
-  const marked = item.record_count - unmarked
+const daysFromToday = (iso) => {
+  if (!iso) return null
+  const today = new Date(new Date().toDateString())
+  const due = new Date(new Date(iso).toDateString())
+  return Math.round((due - today) / 86400000)
+}
 
-  const meta = [
-    item.due_date ? `Due ${fmtDate(item.due_date)}` : `Set ${fmtDate(item.date)}`,
-    urgent
-      ? `${unmarked} of ${item.record_count} unmarked`
+const Icon = ({ d, className = 'w-[15px] h-[15px]' }) => (
+  <svg className={`${className} flex-shrink-0`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={d} />
+  </svg>
+)
+
+const ICONS = {
+  alarm: 'M12 8v4l2 2m6-2a8 8 0 11-16 0 8 8 0 0116 0zM5 3L2 6m20 0l-3-3',
+  calendarDue: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+  calendarCheck: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2zm4-6l2 2 4-4',
+  checkbox: 'M9 12l2 2 4-4m5 6a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h12a2 2 0 012 2v10z',
+  circleCheck: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+  target: 'M12 8a4 4 0 100 8 4 4 0 000-8zm0-5a9 9 0 100 18 9 9 0 000-18zm0 8a1 1 0 100 2 1 1 0 000-2z',
+}
+
+function WorkCard({ item, onMark, state }) {
+  const unmarked = item.unmarked_count
+  const total = item.record_count
+  const marked = total - unmarked
+  const pct = total > 0 ? Math.round((marked / total) * 100) : 0
+  const days = daysFromToday(item.due_date)
+
+  const dueLabel = !item.due_date
+    ? `Set ${fmtDate(item.date)}`
+    : state === 'complete'
+      ? `Due ${fmtDate(item.due_date)}`
+      : days < 0
+        ? `${Math.abs(days)} day${Math.abs(days) !== 1 ? 's' : ''} late`
+        : days === 0
+          ? 'Due today'
+          : days === 1
+            ? 'Due tomorrow'
+            : `Due ${fmtDate(item.due_date)}`
+
+  const markLabel = !item.is_graded
+    ? unmarked === 0 ? `All ${total} marked` : `${marked} of ${total} done`
+    : unmarked === 0 ? `All ${total} marked` : marked === 0 ? 'Nothing marked yet' : `${marked} of ${total} marked`
+
+  const urgent = state === 'needs'
+  const progress = state === 'progress'
+  const complete = state === 'complete'
+
+  const wrap = urgent
+    ? 'bg-amber-50 border-l-[3px] border-amber-600 px-3 py-2.5 mb-1.5'
+    : progress
+      ? 'bg-white border border-blue-300 rounded-lg px-3 py-2.5 mb-1.5'
+      : 'bg-white border border-gray-200 rounded-lg px-3 py-2.5 mb-1.5'
+
+  const metaColor = urgent ? 'text-amber-800' : 'text-gray-500'
+  const markColor = urgent
+    ? 'text-amber-800'
+    : complete || unmarked === 0
+      ? 'text-green-700'
+      : progress
+        ? 'text-blue-600'
+        : marked === 0
+          ? 'text-gray-400'
+          : 'text-gray-500'
+
+  const btn = urgent
+    ? 'bg-amber-600 text-white hover:bg-amber-700'
+    : progress
+      ? 'bg-navy text-white hover:bg-navy-light'
+      : 'border border-gray-300 text-navy hover:bg-gray-50'
+
+  const btnLabel = urgent
+    ? 'Mark now'
+    : progress
+      ? 'Continue marking'
       : unmarked === 0
-        ? `all ${item.record_count} marked`
-        : `${marked} of ${item.record_count} marked`,
-    item.is_graded ? `out of ${fmtScore(item.max_score)}` : null,
-  ].filter(Boolean).join(' · ')
+        ? 'View'
+        : 'Mark early'
 
   return (
-    <div
-      className={
-        urgent
-          ? 'bg-amber-50 border-l-[3px] border-amber-600 px-3 py-2.5 mb-1.5'
-          : 'bg-white border border-gray-200 rounded-lg px-3 py-2.5 mb-1.5'
-      }
-    >
-      <div className="flex items-start justify-between gap-2.5">
-        <div className="min-w-0">
-          <div className={`text-sm font-semibold ${urgent ? 'text-amber-950' : 'text-navy'}`}>
-            {item.name}
-          </div>
-          <div className={`text-xs mt-0.5 ${urgent ? 'text-amber-800' : 'text-gray-500'}`}>
-            {meta}
-          </div>
+    <div className={wrap}>
+      <div className="flex items-start justify-between gap-2.5 mb-1.5">
+        <div className={`text-sm font-semibold ${urgent ? 'text-amber-950' : 'text-navy'}`}>
+          {item.name}
         </div>
         <span
           className={`text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full flex-shrink-0 ${
@@ -404,15 +457,37 @@ function WorkCard({ item, onMark, tone }) {
         </span>
       </div>
 
+      <div className={`flex items-center gap-3.5 flex-wrap text-xs mb-2 ${metaColor}`}>
+        <span className="flex items-center gap-1">
+          <Icon d={urgent ? ICONS.alarm : complete ? ICONS.calendarCheck : ICONS.calendarDue} />
+          {dueLabel}
+        </span>
+        <span className={`flex items-center gap-1 ${markColor}`}>
+          <Icon d={unmarked === 0 ? ICONS.circleCheck : ICONS.checkbox} />
+          {markLabel}
+        </span>
+        {item.is_graded && (
+          <span className="flex items-center gap-1">
+            <Icon d={ICONS.target} />
+            out of {fmtScore(item.max_score)}
+          </span>
+        )}
+      </div>
+
+      {(urgent || progress) && total > 0 && (
+        <div className={`h-[5px] rounded-full overflow-hidden mb-2.5 ${urgent ? 'bg-amber-200' : 'bg-blue-100'}`}>
+          <div
+            className={`h-full transition-all ${urgent ? 'bg-amber-600' : 'bg-blue-500'}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      )}
+
       <button
         onClick={() => onMark(item.id)}
-        className={`mt-2.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition ${
-          urgent
-            ? 'bg-amber-600 text-white hover:bg-amber-700'
-            : 'border border-gray-300 text-navy hover:bg-gray-50'
-        }`}
+        className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition ${btn}`}
       >
-        {urgent ? 'Mark now' : unmarked === 0 ? 'View' : 'Mark'}
+        {btnLabel}
       </button>
     </div>
   )
@@ -436,12 +511,16 @@ function ClassworkPanel({ classroomId, subjects = [] }) {
 
   const items = data?.data?.classwork || []
 
-  const today = new Date(new Date().toDateString())
-  const isOverdue = (i) => i.due_date && new Date(i.due_date) < today
+  const isOverdue = (i) => daysFromToday(i.due_date) !== null && daysFromToday(i.due_date) < 0
 
   const needsMarking = items.filter((i) => isOverdue(i) && i.unmarked_count > 0)
-  const earlier = items.filter((i) => !needsMarking.includes(i) && i.unmarked_count === 0 && isOverdue(i))
-  const active = items.filter((i) => !needsMarking.includes(i) && !earlier.includes(i))
+  const inProgress = items.filter(
+    (i) => !isOverdue(i) && i.unmarked_count > 0 && i.unmarked_count < i.record_count
+  )
+  const waiting = items.filter(
+    (i) => !isOverdue(i) && i.unmarked_count === i.record_count && i.record_count > 0
+  )
+  const complete = items.filter((i) => i.record_count > 0 && i.unmarked_count === 0)
 
   const handleCreated = (message) => {
     setShowForm(false)
@@ -516,15 +595,58 @@ function ClassworkPanel({ classroomId, subjects = [] }) {
         </div>
       )}
 
-      {needsMarking.length > 0 && (
+          {needsMarking.length > 0 && (
         <>
           <div className="text-xs font-semibold text-amber-700 mb-1.5">
             Needs marking · {needsMarking.length}
           </div>
-          {needsMarking.map((item) => (
-            <WorkCard key={item.id} item={item} onMark={setMarkingId} tone="urgent" />
-          ))}
+          {needsMarking.map((i) => <WorkCard key={i.id} item={i} onMark={setMarkingId} state="needs" />)}
         </>
+      )}
+
+      {inProgress.length > 0 && (
+        <>
+          <div className="text-xs font-semibold text-blue-600 mt-4 mb-1.5">
+            In progress · {inProgress.length}
+          </div>
+          {inProgress.map((i) => <WorkCard key={i.id} item={i} onMark={setMarkingId} state="progress" />)}
+        </>
+      )}
+
+      {waiting.length > 0 && (
+        <>
+          <div className="text-xs font-semibold text-gray-500 mt-4 mb-1.5">
+            Waiting on students · {waiting.length}
+          </div>
+          {waiting.map((i) => <WorkCard key={i.id} item={i} onMark={setMarkingId} state="waiting" />)}
+        </>
+      )}
+
+      {complete.length > 0 && (
+        <div className="mt-4">
+          <button
+            onClick={() => setShowEarlier((v) => !v)}
+            className="w-full flex items-center justify-between px-3 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+          >
+            <span className="text-xs text-gray-500 flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+              </svg>
+              Completed · {complete.length}
+            </span>
+            <span className="text-xs text-navy font-semibold flex items-center gap-1">
+              {showEarlier ? 'Hide' : 'Show'}
+              <svg className={`w-3.5 h-3.5 transition-transform ${showEarlier ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </span>
+          </button>
+          {showEarlier && (
+            <div className="mt-1.5">
+              {complete.map((i) => <WorkCard key={i.id} item={i} onMark={setMarkingId} state="complete" />)}
+            </div>
+          )}
+        </div>
       )}
 
       {active.length > 0 && (
