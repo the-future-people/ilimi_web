@@ -355,44 +355,64 @@ function MarkScreen({ classworkId, onBack }) {
   )
 }
 
-function WorkListItem({ item, onMark }) {
-  const isGraded = item.is_graded
-  const overdue = item.due_date && new Date(item.due_date) < new Date(new Date().toDateString())
+const fmtDate = (iso) => {
+  if (!iso) return null
+  const d = new Date(iso)
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+}
+
+const fmtScore = (n) => (n === null || n === undefined ? null : Number(n).toString())
+
+function WorkCard({ item, onMark, tone }) {
+  const urgent = tone === 'urgent'
   const unmarked = item.unmarked_count
-  const needsAttention = overdue && unmarked > 0
-  const allMarked = unmarked === 0
+  const marked = item.record_count - unmarked
+
+  const meta = [
+    item.due_date ? `Due ${fmtDate(item.due_date)}` : `Set ${fmtDate(item.date)}`,
+    urgent
+      ? `${unmarked} of ${item.record_count} unmarked`
+      : unmarked === 0
+        ? `all ${item.record_count} marked`
+        : `${marked} of ${item.record_count} marked`,
+    item.is_graded ? `out of ${fmtScore(item.max_score)}` : null,
+  ].filter(Boolean).join(' · ')
 
   return (
-    <div className={`rounded-lg p-3 mb-2 border ${needsAttention ? 'bg-red-50 border-red-200' : 'border-gray-200'}`}>
-      <div className="flex items-start justify-between gap-2 mb-1">
-        <div className={`text-sm font-semibold ${needsAttention ? 'text-red-900' : 'text-navy'}`}>
-          {item.name}
+    <div
+      className={
+        urgent
+          ? 'bg-amber-50 border-l-[3px] border-amber-600 px-3 py-2.5 mb-1.5'
+          : 'bg-white border border-gray-200 rounded-lg px-3 py-2.5 mb-1.5'
+      }
+    >
+      <div className="flex items-start justify-between gap-2.5">
+        <div className="min-w-0">
+          <div className={`text-sm font-semibold ${urgent ? 'text-amber-950' : 'text-navy'}`}>
+            {item.name}
+          </div>
+          <div className={`text-xs mt-0.5 ${urgent ? 'text-amber-800' : 'text-gray-500'}`}>
+            {meta}
+          </div>
         </div>
-        <span className={`text-[9px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full flex-shrink-0 ${
-          isGraded ? 'bg-amber-100 text-amber-900' : 'bg-gray-100 text-gray-600'
-        }`}>
-          {item.work_type_display} · {isGraded ? 'Counts' : 'Ungraded'}
+        <span
+          className={`text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full flex-shrink-0 ${
+            urgent ? 'bg-amber-300 text-amber-950' : 'bg-gray-100 text-gray-600'
+          }`}
+        >
+          {item.work_type_display} · {item.is_graded ? 'Counts' : 'Ungraded'}
         </span>
-      </div>
-
-      <div className={`text-[11px] mb-2.5 ${needsAttention ? 'text-red-700' : 'text-gray-500'}`}>
-        {item.due_date
-          ? (overdue ? 'Past due' : `Due ${item.due_date}`)
-          : `Set ${item.date}`}
-        {' · '}
-        {allMarked ? `all ${item.record_count} marked` : `${unmarked} of ${item.record_count} unmarked`}
-        {isGraded && ` · out of ${item.max_score}`}
       </div>
 
       <button
         onClick={() => onMark(item.id)}
-        className={`text-[11px] font-semibold px-3 py-1.5 rounded-lg transition ${
-          needsAttention
-            ? 'bg-red-700 text-white hover:bg-red-800'
+        className={`mt-2.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition ${
+          urgent
+            ? 'bg-amber-600 text-white hover:bg-amber-700'
             : 'border border-gray-300 text-navy hover:bg-gray-50'
         }`}
       >
-        {allMarked ? 'View' : 'Mark'}
+        {urgent ? 'Mark now' : unmarked === 0 ? 'View' : 'Mark'}
       </button>
     </div>
   )
@@ -403,6 +423,7 @@ function ClassworkPanel({ classroomId, subjects = [] }) {
   const [subjectId, setSubjectId] = useState(subjects[0]?.id || null)
   const [showForm, setShowForm] = useState(false)
   const [markingId, setMarkingId] = useState(null)
+  const [showEarlier, setShowEarlier] = useState(false)
   const [toast, setToast] = useState('')
 
   const subject = subjects.find((s) => s.id === subjectId)
@@ -414,6 +435,13 @@ function ClassworkPanel({ classroomId, subjects = [] }) {
   })
 
   const items = data?.data?.classwork || []
+
+  const today = new Date(new Date().toDateString())
+  const isOverdue = (i) => i.due_date && new Date(i.due_date) < today
+
+  const needsMarking = items.filter((i) => isOverdue(i) && i.unmarked_count > 0)
+  const earlier = items.filter((i) => !needsMarking.includes(i) && i.unmarked_count === 0 && isOverdue(i))
+  const active = items.filter((i) => !needsMarking.includes(i) && !earlier.includes(i))
 
   const handleCreated = (message) => {
     setShowForm(false)
@@ -479,7 +507,7 @@ function ClassworkPanel({ classroomId, subjects = [] }) {
         </div>
       )}
 
-      {isLoading && <div className="text-center py-14 text-gray-400 text-sm">Loading classwork...</div>}
+            {isLoading && <div className="text-center py-14 text-gray-400 text-sm">Loading classwork...</div>}
 
       {!isLoading && items.length === 0 && !showForm && (
         <div className="text-center py-14">
@@ -488,9 +516,56 @@ function ClassworkPanel({ classroomId, subjects = [] }) {
         </div>
       )}
 
-      {items.map((item) => (
-        <WorkListItem key={item.id} item={item} onMark={setMarkingId} />
-      ))}
+      {needsMarking.length > 0 && (
+        <>
+          <div className="text-xs font-semibold text-amber-700 mb-1.5">
+            Needs marking · {needsMarking.length}
+          </div>
+          {needsMarking.map((item) => (
+            <WorkCard key={item.id} item={item} onMark={setMarkingId} tone="urgent" />
+          ))}
+        </>
+      )}
+
+      {active.length > 0 && (
+        <>
+          <div className="text-xs font-semibold text-gray-500 mt-4 mb-1.5">
+            Active · {active.length}
+          </div>
+          {active.map((item) => (
+            <WorkCard key={item.id} item={item} onMark={setMarkingId} />
+          ))}
+        </>
+      )}
+
+      {earlier.length > 0 && (
+        <div className="mt-4">
+          <button
+            onClick={() => setShowEarlier((v) => !v)}
+            className="w-full flex items-center justify-between px-3 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+          >
+            <span className="text-xs text-gray-500">
+              Earlier this term · {earlier.length} completed
+            </span>
+            <span className="text-xs text-navy font-semibold flex items-center gap-1">
+              {showEarlier ? 'Hide' : 'Show'}
+              <svg
+                className={`w-3.5 h-3.5 transition-transform ${showEarlier ? 'rotate-180' : ''}`}
+                fill="none" stroke="currentColor" viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </span>
+          </button>
+          {showEarlier && (
+            <div className="mt-1.5">
+              {earlier.map((item) => (
+                <WorkCard key={item.id} item={item} onMark={setMarkingId} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {toast && (
         <div className="fixed bottom-6 right-6 bg-navy text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-lg z-50 border-l-4 border-gold">
