@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getSetupStatus, getSchoolClassrooms, getAssignments,
   createAssignment, updateAssignment, deleteAssignment, getSubjects,
-  updateClassroom,
+  updateClassroom, setClassTeacher,
 } from '../../api/academics'
 import { getAllStaff } from '../../api/staff'
 
@@ -16,25 +16,11 @@ const BAND_WASH = {
   jhs: 'bg-purple-50/60',
 }
 
-const bandFor = (levelName = '') => {
+const groupFor = (levelName = '') => {
   if (levelName.startsWith('nursery') || levelName.startsWith('kindergarten')) return 'early'
   if (levelName.startsWith('primary')) return 'primary'
   return 'jhs'
 }
-
-const SUBJECT_TYPE_STYLES = {
-  core: 'bg-teal-50 text-teal-700',
-  elective: 'bg-rose-50 text-rose-700',
-  optional: 'bg-gray-100 text-gray-500',
-}
-
-const AVATAR_PALETTE = [
-  'bg-blue-50 text-blue-700', 'bg-purple-50 text-purple-700',
-  'bg-teal-50 text-teal-700', 'bg-rose-50 text-rose-700',
-  'bg-amber-50 text-amber-700', 'bg-indigo-50 text-indigo-700',
-]
-const avatarStyle = (id) => AVATAR_PALETTE[Number(id) % AVATAR_PALETTE.length]
-const initials = (name) => name ? name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase() : '?'
 
 function useToast() {
   const [toasts, setToasts] = useState([])
@@ -65,12 +51,12 @@ function useToast() {
   return { push, ToastStack }
 }
 
-function TeacherSelect({ value, onChange, staff, placeholder = 'Select teacher...' }) {
+function TeacherSelect({ value, onChange, staff, placeholder = 'Choose teacher', className = '' }) {
   return (
     <select
       value={value || ''}
       onChange={(e) => onChange(e.target.value || null)}
-      className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs outline-none focus:border-gold bg-white"
+      className={`px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs outline-none focus:border-gold bg-white ${className}`}
     >
       <option value="">{placeholder}</option>
       {staff.map((s) => (
@@ -80,265 +66,260 @@ function TeacherSelect({ value, onChange, staff, placeholder = 'Select teacher..
   )
 }
 
-function UnassignedSubjectRow({ subject, classroomId, termId, staff, onDone }) {
-  const [open, setOpen] = useState(false)
-  const [teacherId, setTeacherId] = useState('')
-  const [periods, setPeriods] = useState(5)
+function LowerBandCard({ classroom, termId, subjects, staff, assignments, onChanged, toast }) {
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+  const [confirm, setConfirm] = useState(null)
 
-  const typeStyle = SUBJECT_TYPE_STYLES[subject.subject_type] || SUBJECT_TYPE_STYLES.core
+  const current = classroom.form_teacher
+  const currentName = classroom.form_teacher_name
+  const assignedCount = assignments.filter((a) => a.teacher).length
 
-  const handleSave = async () => {
+  const apply = async (teacherId) => {
     setSaving(true)
-    setError('')
     try {
-      const res = await createAssignment({
-        classroom: classroomId,
-        subject: subject.id,
-        teacher: teacherId || null,
-        term: termId,
-        periods_per_week: Number(periods) || 5,
-      })
-      onDone(res)
+      const res = await setClassTeacher(classroom.id, { teacher: teacherId, term: termId })
+      await onChanged()
+      toast.push(res.message || 'Class teacher set')
     } catch (err) {
-      const data = err.response?.data
-      const fieldError = data?.errors && Object.values(data.errors)[0]?.[0]
-      setError(fieldError || data?.message || 'Could not assign.')
+      toast.push(err.response?.data?.message || 'Could not set class teacher')
     } finally {
       setSaving(false)
     }
   }
 
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        className="w-full flex items-center gap-2 px-2.5 py-2 bg-white border border-gray-200 rounded-lg hover:border-gold/50 hover:bg-gold/5 transition text-left"
-      >
-        <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
-        <span className="text-xs text-gray-600 truncate">{subject.name}</span>
-        <span className={`ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full ${typeStyle}`}>
-          {subject.subject_type || 'core'}
-        </span>
-      </button>
-    )
-  }
-
-  return (
-    <div className="flex flex-col gap-1.5 px-2.5 py-2 border border-gold/40 bg-gold/10 rounded-lg">
-      <div className="text-xs font-semibold text-navy">{subject.name}</div>
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <TeacherSelect value={teacherId} onChange={setTeacherId} staff={staff} placeholder="Teacher" />
-        <input
-          type="number"
-          min={1}
-          value={periods}
-          onChange={(e) => setPeriods(e.target.value)}
-          className="w-14 px-2 py-1.5 border border-gray-200 rounded-lg text-xs outline-none focus:border-gold"
-          title="Periods per week"
-        />
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="text-xs font-bold bg-navy text-white px-3 py-1.5 rounded-lg hover:bg-navy-light transition disabled:opacity-50"
-        >
-          {saving ? '...' : 'Add'}
-        </button>
-        <button onClick={() => setOpen(false)} className="text-xs text-gray-400 hover:text-gray-600 px-1">
-          Cancel
-        </button>
-      </div>
-      {error && <div className="text-[11px] text-red-600">{error}</div>}
-    </div>
-  )
-}
-
-function AssignedSubjectRow({ assignment, staff, onReassign, onRemove, flashed }) {
-  return (
-    <div className={`flex items-center gap-2.5 px-2.5 py-2 border rounded-lg transition-colors duration-700 ${flashed ? 'bg-gold/20 border-gold/40' : 'bg-white border-gray-100'}`}>
-      <svg className="w-3.5 h-3.5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-      </svg>
-      <span className="text-xs font-semibold text-navy truncate flex-1">{assignment.subject_name}</span>
-      <span className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded flex-shrink-0">{assignment.periods_per_week}/wk</span>
-      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0 ${avatarStyle(assignment.teacher || 0)}`}>
-        {assignment.teacher_name ? initials(assignment.teacher_name) : '?'}
-      </div>
-      <div className="flex items-center gap-1 flex-shrink-0">
-        <select
-          value={assignment.teacher || ''}
-          onChange={(e) => onReassign(assignment.id, e.target.value || null)}
-          className="text-[10px] border-none bg-transparent text-gray-400 outline-none cursor-pointer max-w-[70px]"
-          title="Reassign"
-        >
-          <option value="">Change...</option>
-                    {staff.map((s) => (
-            <option key={s.id} value={s.school_member_id}>{s.full_name}</option>
-          ))}
-        </select>
-        <button onClick={() => onRemove(assignment.id)} className="text-gray-300 hover:text-red-500 transition" title="Remove">
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function ClassroomAssignmentCard({ classroom, termId, subjects, staff, assignmentsByClassroom, refetch, toast }) {
-  const [expanded, setExpanded] = useState(false)
-  const [savingFormTeacher, setSavingFormTeacher] = useState(false)
-  const [flashedId, setFlashedId] = useState(null)
-  const [conflict, setConflict] = useState(null)
-
-  const assignments = assignmentsByClassroom[classroom.id] || []
-  const assignedSubjectIds = new Set(assignments.map((a) => a.subject))
-  const unassignedSubjects = subjects.filter((s) => !assignedSubjectIds.has(s.id))
-  const total = subjects.length
-  const done = assignments.length
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0
-
-  const flash = (id) => {
-    setFlashedId(id)
-    setTimeout(() => setFlashedId(null), 900)
-  }
-
-    const handleFormTeacherChange = async (teacherId, reassign = false) => {
+  const handleChange = (teacherId) => {
+    if (!teacherId) return apply(null)
     const name = staff.find((s) => String(s.school_member_id) === String(teacherId))?.full_name
+    if (current && String(current) !== String(teacherId)) {
+      setConfirm({ teacherId, name })
+    } else {
+      apply(teacherId)
+    }
+  }
 
-    setSavingFormTeacher(true)
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-4">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="min-w-0">
+          <div className="text-[15px] font-semibold text-navy">{classroom.full_name}</div>
+          <div className="text-xs text-gray-500 mt-0.5">One teacher takes every subject at this level</div>
+        </div>
+        <span className="text-[10px] font-semibold text-blue-900 bg-blue-50 px-2.5 py-1 rounded-full flex-shrink-0">
+          Single teacher
+        </span>
+      </div>
+
+      <div className="bg-gray-50 rounded-lg p-3">
+        <label className="text-xs text-gray-500 block mb-1.5">Class teacher</label>
+        <div className="flex items-center gap-2">
+          <TeacherSelect
+            value={current}
+            onChange={handleChange}
+            staff={staff}
+            placeholder="Not assigned"
+            className="flex-1 text-sm py-2"
+          />
+          {saving && <span className="text-[11px] text-gray-400 whitespace-nowrap">Saving...</span>}
+          {!saving && currentName && (
+            <span className="text-xs text-green-700 whitespace-nowrap flex items-center gap-1">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+              </svg>
+              {assignedCount} subject{assignedCount !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+        <div className="text-xs text-gray-500 mt-2.5 leading-relaxed">
+          {currentName
+            ? `${currentName} takes all subjects and is form master of this class.`
+            : 'Pick a teacher to take every subject and act as form master.'}
+        </div>
+      </div>
+
+      {confirm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setConfirm(null)}>
+          <div className="bg-white rounded-2xl p-5 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="font-serif text-lg font-bold text-navy mb-2">Change class teacher?</div>
+            <p className="text-sm text-gray-600 leading-relaxed mb-4">
+              Every subject in <span className="font-semibold text-navy">{classroom.full_name}</span> will move
+              from <span className="font-semibold text-navy">{currentName}</span> to{' '}
+              <span className="font-semibold text-navy">{confirm.name}</span>, who will also become form master.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setConfirm(null); toast.push('Change cancelled') }}
+                className="flex-1 bg-gray-100 text-gray-600 text-sm font-bold py-2.5 rounded-lg hover:bg-gray-200 transition"
+              >
+                No
+              </button>
+              <button
+                onClick={() => { const c = confirm; setConfirm(null); apply(c.teacherId) }}
+                className="flex-1 bg-navy text-white text-sm font-bold py-2.5 rounded-lg hover:bg-navy-light transition"
+              >
+                Yes, change
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function UpperBandCard({ classroom, termId, subjects, staff, assignments, onChanged, toast }) {
+  const [savingForm, setSavingForm] = useState(false)
+  const [conflict, setConflict] = useState(null)
+  const [busySubject, setBusySubject] = useState(null)
+
+  const bySubject = useMemo(() => {
+    const map = {}
+    for (const a of assignments) map[a.subject] = a
+    return map
+  }, [assignments])
+
+  const rows = useMemo(() => {
+    const list = subjects.map((s) => ({ subject: s, assignment: bySubject[s.id] || null }))
+    return [
+      ...list.filter((r) => !r.assignment || !r.assignment.teacher),
+      ...list.filter((r) => r.assignment && r.assignment.teacher),
+    ]
+  }, [subjects, bySubject])
+
+  const gaps = rows.filter((r) => !r.assignment || !r.assignment.teacher).length
+
+  const setFormTeacher = async (teacherId, reassign = false) => {
+    const name = staff.find((s) => String(s.school_member_id) === String(teacherId))?.full_name
+    setSavingForm(true)
     try {
       await updateClassroom(classroom.id, {
         form_teacher: teacherId,
         ...(reassign ? { reassign: true } : {}),
       })
-      await refetch()
-      toast.push(name ? `${name} set as form teacher` : 'Form teacher updated')
+      await onChanged()
+      toast.push(name ? `${name} set as form master` : 'Form master cleared')
     } catch (err) {
       const errors = err.response?.data?.errors
       const conflictClass = errors?.conflict_classroom?.[0]
-
       if (conflictClass && !reassign) {
         setConflict({ teacherId, name, currentClass: conflictClass })
       } else {
-        toast.push(errors?.form_teacher?.[0] || 'Could not set form teacher')
+        toast.push(errors?.form_teacher?.[0] || 'Could not set form master')
       }
     } finally {
-      setSavingFormTeacher(false)
+      setSavingForm(false)
     }
   }
 
-  const handleRemove = async (assignmentId) => {
-    await deleteAssignment(assignmentId)
-    await refetch()
-    toast.push('Assignment removed')
-  }
-
-  const handleTeacherReassign = async (assignmentId, teacherId) => {
-    await updateAssignment(assignmentId, { teacher: teacherId })
-    await refetch()
-    flash(assignmentId)
-    const name = staff.find((s) => String(s.school_member_id) === String(teacherId))?.full_name
-    toast.push(name ? `Reassigned to ${name}` : 'Teacher removed from subject')
-  }
-
-  const handleAssignDone = async (res) => {
-    await refetch()
-    toast.push(res?.message || 'Subject assigned')
+  const setSubjectTeacher = async (subject, assignment, teacherId) => {
+    setBusySubject(subject.id)
+    try {
+      if (assignment) {
+        await updateAssignment(assignment.id, { teacher: teacherId })
+      } else {
+        await createAssignment({
+          classroom: classroom.id,
+          subject: subject.id,
+          teacher: teacherId,
+          term: termId,
+          periods_per_week: 5,
+        })
+      }
+      await onChanged()
+      const name = staff.find((s) => String(s.school_member_id) === String(teacherId))?.full_name
+      toast.push(name ? `${subject.name} assigned to ${name}` : `${subject.name} unassigned`)
+    } catch (err) {
+      toast.push(err.response?.data?.message || 'Could not assign subject')
+    } finally {
+      setBusySubject(null)
+    }
   }
 
   return (
-    <div className="bg-white border-2 border-dashed border-gold/40 rounded-2xl overflow-hidden">
-      <button
-        onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-gold/5 transition text-left"
-      >
-        <div>
-          <div className="text-sm font-semibold text-navy">{classroom.full_name}</div>
-          <div className="text-xs text-gray-400 mt-0.5">
-            {classroom.form_teacher_name ? `Form teacher: ${classroom.form_teacher_name}` : 'No form teacher assigned'}
-          </div>
+    <div className="bg-white border border-gray-200 rounded-xl p-4">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="min-w-0">
+          <div className="text-[15px] font-semibold text-navy">{classroom.full_name}</div>
+          <div className="text-xs text-gray-500 mt-0.5">Subject specialists, plus a form master</div>
         </div>
-        <div className="flex items-center gap-3 flex-shrink-0">
-          {total > 0 && (
-            <div className="hidden sm:flex items-center gap-2">
-              <span className="text-xs text-gray-400">{done} of {total} assigned</span>
-              <div className="w-14 h-1 rounded-full bg-gray-100 overflow-hidden">
-                <div className="h-full bg-green-500 transition-all" style={{ width: `${pct}%` }} />
-              </div>
-            </div>
-          )}
-          <svg className={`w-4 h-4 text-gray-300 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-          </svg>
+        <span className="text-[10px] font-semibold text-purple-900 bg-purple-50 px-2.5 py-1 rounded-full flex-shrink-0">
+          Specialists
+        </span>
+      </div>
+
+      <div className="bg-gray-50 rounded-lg p-3 mb-3.5">
+        <label className="text-xs text-gray-500 block mb-1.5">Form master</label>
+        <div className="flex items-center gap-2">
+          <TeacherSelect
+            value={classroom.form_teacher}
+            onChange={(id) => setFormTeacher(id)}
+            staff={staff}
+            placeholder="Not assigned"
+            className="flex-1 text-sm py-2"
+          />
+          {savingForm && <span className="text-[11px] text-gray-400 whitespace-nowrap">Saving...</span>}
         </div>
-      </button>
+      </div>
 
-      {expanded && (
-        <div className="px-4 pb-4 pt-1 border-t border-dashed border-gold/30 flex flex-col gap-4">
-          <div className="flex items-center gap-3 pt-3">
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Form Teacher</span>
-            <TeacherSelect value={classroom.form_teacher} onChange={handleFormTeacherChange} staff={staff} placeholder="Not assigned" />
-            {savingFormTeacher && <span className="text-[11px] text-gray-400">Saving...</span>}
-          </div>
+      <div className="flex items-baseline justify-between mb-2">
+        <span className="text-xs text-gray-500">Subjects</span>
+        {gaps > 0 ? (
+          <span className="text-xs font-semibold text-amber-700">
+            {gaps} need{gaps === 1 ? 's' : ''} a teacher
+          </span>
+        ) : (
+          <span className="text-xs text-green-700">All assigned</span>
+        )}
+      </div>
 
-          <div className="flex flex-col sm:flex-row gap-0 sm:items-stretch">
-            <div className="flex-1 border border-dashed border-gray-300 rounded-xl sm:rounded-r-none sm:border-r-0 p-3">
-              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Needs a teacher</div>
-              {unassignedSubjects.length === 0 ? (
-                <div className="text-xs text-gray-300 py-3 text-center">All subjects assigned</div>
+      {rows.map(({ subject, assignment }) => {
+        const unassigned = !assignment || !assignment.teacher
+        const busy = busySubject === subject.id
+
+        return (
+          <div
+            key={subject.id}
+            className={`flex items-center justify-between gap-2 ${
+              unassigned
+                ? 'bg-amber-50 px-2.5 py-2 mb-0.5'
+                : 'px-2.5 py-2 border-b border-gray-100'
+            }`}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              {unassigned ? (
+                <svg className="w-4 h-4 text-amber-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               ) : (
-                <div className="flex flex-col gap-1.5">
-                  {unassignedSubjects.map((s) => (
-                    <UnassignedSubjectRow
-                      key={s.id}
-                      subject={s}
-                      classroomId={classroom.id}
-                      termId={termId}
-                      staff={staff}
-                      onDone={handleAssignDone}
-                    />
-                  ))}
-                </div>
+                <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+              <span className={`text-[13px] truncate ${unassigned ? 'font-semibold text-amber-900' : 'text-navy'}`}>
+                {subject.name}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {assignment && (
+                <span className="text-[11px] text-gray-400">{assignment.periods_per_week}/wk</span>
+              )}
+              {busy ? (
+                <span className="text-[11px] text-gray-400 w-[150px] text-center">Saving...</span>
+              ) : (
+                <TeacherSelect
+                  value={assignment?.teacher}
+                  onChange={(id) => setSubjectTeacher(subject, assignment, id)}
+                  staff={staff}
+                  placeholder="Choose teacher"
+                  className="w-[150px]"
+                />
               )}
             </div>
-
-            <div className="hidden sm:flex items-center justify-center w-9 bg-gray-50/80 border-t border-b border-dashed border-gray-300">
-              <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
-            </div>
-
-            <div className="flex-1 border border-dashed border-gray-300 rounded-xl sm:rounded-l-none p-3">
-              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Assigned</div>
-              {assignments.length === 0 ? (
-                <div className="text-xs text-gray-300 py-3 text-center">Nothing assigned yet</div>
-              ) : (
-                <div className="flex flex-col gap-1.5">
-                  {assignments.map((a) => (
-                    <AssignedSubjectRow
-                      key={a.id}
-                      assignment={a}
-                      staff={staff}
-                      onReassign={handleTeacherReassign}
-                      onRemove={handleRemove}
-                      flashed={flashedId === a.id}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-                    </div>
-        </div>
-      )}
+          </div>
+        )
+      })}
 
       {conflict && (
-        <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-          onClick={() => setConflict(null)}
-        >
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setConflict(null)}>
           <div className="bg-white rounded-2xl p-5 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
             <div className="font-serif text-lg font-bold text-navy mb-2">Move form master?</div>
             <p className="text-sm text-gray-600 leading-relaxed mb-1">
@@ -347,8 +328,8 @@ function ClassroomAssignmentCard({ classroom, termId, subjects, staff, assignmen
             </p>
             <p className="text-sm text-gray-600 leading-relaxed mb-4">
               They are currently the form master of{' '}
-              <span className="font-semibold text-navy">{conflict.currentClass}</span>, and will be
-              released from that class. Is that correct?
+              <span className="font-semibold text-navy">{conflict.currentClass}</span>, and will be released
+              from that class. Is that correct?
             </p>
             <div className="flex gap-2">
               <button
@@ -358,7 +339,7 @@ function ClassroomAssignmentCard({ classroom, termId, subjects, staff, assignmen
                 No
               </button>
               <button
-                onClick={() => { const c = conflict; setConflict(null); handleFormTeacherChange(c.teacherId, true) }}
+                onClick={() => { const c = conflict; setConflict(null); setFormTeacher(c.teacherId, true) }}
                 className="flex-1 bg-navy text-white text-sm font-bold py-2.5 rounded-lg hover:bg-navy-light transition"
               >
                 Yes, move them
@@ -390,11 +371,15 @@ function AssignmentTab() {
   })
   const assignments = assignmentsData?.data?.assignments || []
 
-  const { data: staffData } = useQuery({ queryKey: ['all-staff-unfiltered'], queryFn: () => getAllStaff({ page_size: 200 }) })
+  const { data: staffData } = useQuery({
+    queryKey: ['all-staff-unfiltered'],
+    queryFn: () => getAllStaff({ page_size: 200 }),
+  })
   const staff = (staffData?.data?.staff || []).filter((s) => s.staff_category === 'teaching')
 
   const { data: subjectsData } = useQuery({ queryKey: ['subjects'], queryFn: getSubjects })
-  const subjects = subjectsData?.data?.subjects || []
+  const allSubjects = subjectsData?.data?.subjects || []
+  const coreSubjects = allSubjects.filter((s) => s.subject_type === 'core')
 
   const assignmentsByClassroom = useMemo(() => {
     const map = {}
@@ -406,18 +391,18 @@ function AssignmentTab() {
   }, [assignments])
 
   const groups = useMemo(() => {
-    const byBand = {}
+    const byGroup = {}
     for (const c of classrooms) {
-      const band = bandFor(c.class_level_display?.toLowerCase().replace(/\s+/g, '_') || '')
-      if (!byBand[band]) byBand[band] = []
-      byBand[band].push(c)
+      const key = groupFor(c.class_level_display?.toLowerCase().replace(/\s+/g, '_') || '')
+      if (!byGroup[key]) byGroup[key] = []
+      byGroup[key].push(c)
     }
     return BAND_ORDER
-      .filter((band) => byBand[band]?.length)
-      .map((band) => ({ band, label: BAND_LABELS[band], classrooms: byBand[band] }))
+      .filter((g) => byGroup[g]?.length)
+      .map((g) => ({ group: g, label: BAND_LABELS[g], classrooms: byGroup[g] }))
   }, [classrooms])
 
-  const refetch = async () => {
+  const onChanged = async () => {
     await queryClient.invalidateQueries({ queryKey: ['assignments', termId] })
     await queryClient.invalidateQueries({ queryKey: ['school-classrooms'] })
   }
@@ -442,28 +427,35 @@ function AssignmentTab() {
       <toast.ToastStack />
       <div className="flex flex-col gap-5">
         <div className="text-xs text-gray-400">
-          Set each class's form teacher and assign subject teachers for{' '}
+          Nursery to Primary 3 have one teacher for every subject. From Primary 4 up, assign each
+          subject and a form master, for{' '}
           {setupData?.data?.academic_year?.current_term?.name_display || 'the current term'}.
         </div>
+
         {groups.map((group) => (
-          <div key={group.band} className={`${BAND_WASH[group.band]} rounded-2xl p-4 sm:p-5`}>
+          <div key={group.group} className={`${BAND_WASH[group.group]} rounded-2xl p-4 sm:p-5`}>
             <div className="flex items-center gap-2 mb-3">
               <div className="text-sm font-bold text-navy">{group.label}</div>
-              <div className="text-xs text-gray-400">{group.classrooms.length} class{group.classrooms.length !== 1 ? 'es' : ''}</div>
+              <div className="text-xs text-gray-400">
+                {group.classrooms.length} class{group.classrooms.length !== 1 ? 'es' : ''}
+              </div>
             </div>
             <div className="flex flex-col gap-3">
-              {group.classrooms.map((c) => (
-                <ClassroomAssignmentCard
-                  key={c.id}
-                  classroom={c}
-                  termId={termId}
-                  subjects={subjects}
-                  staff={staff}
-                  assignmentsByClassroom={assignmentsByClassroom}
-                  refetch={refetch}
-                  toast={toast}
-                />
-              ))}
+              {group.classrooms.map((c) => {
+                const props = {
+                  classroom: c,
+                  termId,
+                  staff,
+                  assignments: assignmentsByClassroom[c.id] || [],
+                  onChanged,
+                  toast,
+                }
+                return c.band === 'lower' ? (
+                  <LowerBandCard key={c.id} {...props} subjects={coreSubjects} />
+                ) : (
+                  <UpperBandCard key={c.id} {...props} subjects={allSubjects} />
+                )
+              })}
             </div>
           </div>
         ))}

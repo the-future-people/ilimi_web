@@ -93,3 +93,8 @@ export const deleteAssignment = async (id) => {
   const res = await api.delete(`/academics/assignments/${id}/`)
   return res.data
 }
+
+export const setClassTeacher = async (classroomId, payload) => {
+  const res = await api.post(`/academics/classrooms/${classroomId}/class-teacher/`, payload)
+  return res.data
+}
