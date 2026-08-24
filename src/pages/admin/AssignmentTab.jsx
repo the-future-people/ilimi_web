@@ -173,6 +173,7 @@ function UpperBandCard({ classroom, termId, subjects, staff, assignments, onChan
   const [savingForm, setSavingForm] = useState(false)
   const [conflict, setConflict] = useState(null)
   const [busySubject, setBusySubject] = useState(null)
+  const [subjectConfirm, setSubjectConfirm] = useState(null)
 
   const bySubject = useMemo(() => {
     const map = {}
@@ -211,6 +212,17 @@ function UpperBandCard({ classroom, termId, subjects, staff, assignments, onChan
     } finally {
       setSavingForm(false)
     }
+  }
+
+    const requestSubjectChange = (subject, assignment, teacherId) => {
+    const currentName = assignment?.teacher_name
+    const nextName = staff.find((s) => String(s.school_member_id) === String(teacherId))?.full_name
+
+    if (currentName && teacherId && String(assignment.teacher) !== String(teacherId)) {
+      setSubjectConfirm({ subject, assignment, teacherId, currentName, nextName })
+      return
+    }
+    setSubjectTeacher(subject, assignment, teacherId)
   }
 
   const setSubjectTeacher = async (subject, assignment, teacherId) => {
@@ -310,7 +322,7 @@ function UpperBandCard({ classroom, termId, subjects, staff, assignments, onChan
               ) : (
                 <TeacherSelect
                   value={assignment?.teacher}
-                  onChange={(id) => setSubjectTeacher(subject, assignment, id)}
+                  onChange={(id) => requestSubjectChange(subject, assignment, id)}
                   staff={staff}
                   placeholder="Choose teacher"
                   className="w-[150px]"
@@ -320,6 +332,34 @@ function UpperBandCard({ classroom, termId, subjects, staff, assignments, onChan
           </div>
         )
       })}
+
+            {subjectConfirm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setSubjectConfirm(null)}>
+          <div className="bg-white rounded-2xl p-5 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="font-serif text-lg font-bold text-navy mb-2">Change subject teacher?</div>
+            <p className="text-sm text-gray-600 leading-relaxed mb-4">
+              <span className="font-semibold text-navy">{subjectConfirm.subject.name}</span> in{' '}
+              <span className="font-semibold text-navy">{classroom.full_name}</span> will move from{' '}
+              <span className="font-semibold text-navy">{subjectConfirm.currentName}</span> to{' '}
+              <span className="font-semibold text-navy">{subjectConfirm.nextName}</span>.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setSubjectConfirm(null); toast.push('Change cancelled') }}
+                className="flex-1 bg-gray-100 text-gray-600 text-sm font-bold py-2.5 rounded-lg hover:bg-gray-200 transition"
+              >
+                No
+              </button>
+              <button
+                onClick={() => { const c = subjectConfirm; setSubjectConfirm(null); setSubjectTeacher(c.subject, c.assignment, c.teacherId) }}
+                className="flex-1 bg-navy text-white text-sm font-bold py-2.5 rounded-lg hover:bg-navy-light transition"
+              >
+                Yes, change
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {conflict && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setConflict(null)}>
