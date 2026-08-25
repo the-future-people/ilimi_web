@@ -319,11 +319,21 @@ function StaffRegistrationWizard() {
       setSuccessData(res.data || res)
       setPhase('success')
     } catch (err) {
-      const msg = err.response?.data?.message
-        || JSON.stringify(err.response?.data?.errors || err.response?.data)
-        || 'Failed to register staff member. Please check the details and try again.'
+            const data = err.response?.data
+      const fieldError =
+        data?.errors && typeof data.errors === 'object'
+          ? Object.entries(data.errors)
+              .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs[0] : msgs}`)
+              .join(' · ')
+          : null
+      const msg =
+        (typeof data?.message === 'string' && data.message)
+        || fieldError
+        || (err.response?.status >= 500
+          ? 'Something went wrong on our side. Please try again.'
+          : 'Could not register this staff member. Please check the details and try again.')
       setSubmitError(msg)
-      setPhase('error')
+      setPhase('form')
     }
   }
 
