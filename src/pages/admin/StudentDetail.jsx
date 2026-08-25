@@ -186,6 +186,22 @@ function StudentDetail() {
   const [saveSuccess, setSaveSuccess] = useState('')
   const [showPhotoPicker, setShowPhotoPicker] = useState(false)
   const [pendingPhoto, setPendingPhoto] = useState(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+  const tabScrollRef = useRef(null)
+
+  const checkTabScroll = () => {
+  const el = tabScrollRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 4)
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+  }
+
+  const scrollTabs = (direction) => {
+    const el = tabScrollRef.current
+    if (!el) return
+    el.scrollBy({ left: direction === 'left' ? -160 : 160, behavior: 'smooth' })
+  }
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['student-detail', studentId],
@@ -258,6 +274,34 @@ function StudentDetail() {
       window.removeEventListener('resize', checkTabScroll)
     }
   }, [student])
+
+    const handleChangeClass = async () => {
+    if (!selectedClassroom) {
+      setClassChangeError('Choose a class first.')
+      return
+    }
+    setChangingClass(true)
+    setClassChangeError('')
+    try {
+      await changeStudentClass(studentId, {
+        classroom: selectedClassroom,
+        remarks: classChangeRemarks,
+      })
+      await queryClient.invalidateQueries({ queryKey: ['student-detail', studentId] })
+      await queryClient.invalidateQueries({ queryKey: ['all-students-unfiltered'] })
+      await queryClient.invalidateQueries({ queryKey: ['students'] })
+      setShowClassModal(false)
+      setClassChangeRemarks('')
+      setSaveSuccess('Class updated.')
+      setTimeout(() => setSaveSuccess(''), 2500)
+    } catch (err) {
+      const d = err.response?.data
+      const fieldError = d?.errors && Object.values(d.errors)[0]?.[0]
+      setClassChangeError(fieldError || d?.message || 'Could not change the class.')
+    } finally {
+      setChangingClass(false)
+    }
+  }
 
   const initials = (name) => name ? name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase() : '—'
 
