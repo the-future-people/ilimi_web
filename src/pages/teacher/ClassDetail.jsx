@@ -8,6 +8,7 @@ import { getMyClassrooms, getClassroomOverview } from '../../api/academics'
 import AttendancePanel from './AttendancePanel'
 import CAScoresPanel from './CAScoresPanel'
 import ClassworkPanel from './ClassworkPanel'
+import LessonNotesPanel from './LessonNotesPanel'
 
 const tabs = [
   {
@@ -31,7 +32,7 @@ const tabs = [
   {
     key: 'lesson-notes',
     label: 'Lesson Notes',
-    available: false,
+    available: true,
     icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253',
   },
   {
@@ -401,6 +402,18 @@ function ClassDetail() {
               transition={{ duration: 0.15, ease: 'easeInOut' }}
             >
             <ClassworkPanel classroomId={classroomId} subjects={currentClassroom.subjects} />
+            </motion.div>
+          )}
+
+          {activeTab === 'lesson-notes' && currentClassroom && (
+            <motion.div
+              key="lesson-notes"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15, ease: 'easeInOut' }}
+            >
+              <LessonNotesPanel classroomId={classroomId} subjects={currentClassroom.subjects} />
             </motion.div>
           )}
 
