@@ -359,10 +359,6 @@ function ClassDetail() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 pb-10">
         <div className="bg-white rounded-b-2xl shadow-lg -mt-px">
-          <h1 className="font-serif text-xl sm:text-2xl font-bold text-navy px-4 sm:px-6 pt-5 sm:pt-6">
-            {className}
-          </h1>
-
           <AnimatePresence mode="wait">
           {activeTab === 'today' && (
             <motion.div

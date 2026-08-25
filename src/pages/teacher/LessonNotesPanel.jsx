@@ -205,6 +205,7 @@ function PlanEditor({ planId, onBack }) {
   const days = plan?.days || []
   const editable = plan?.is_editable
   const current = days.find((d) => d.day === activeDay)
+  const daysWritten = days.filter((d) => d.has_content).length
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['lesson-plan', planId] })
 
@@ -236,55 +237,17 @@ function PlanEditor({ planId, onBack }) {
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-1.5 text-xs font-semibold text-navy border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-            </svg>
-            Back
-          </button>
-          <span className={`text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${STATUS_STYLES[plan.status]}`}>
-            {plan.status_display}
-          </span>
-        </div>
-        {editable && (
-          <button
-            onClick={trySubmit}
-            disabled={submitMutation.isPending}
-            className="text-xs font-bold text-white bg-navy rounded-lg px-5 py-2 hover:bg-navy-light transition disabled:opacity-50"
-          >
-            {submitMutation.isPending ? 'Submitting...' : 'Submit for vetting'}
-          </button>
-        )}
+          <div className="flex items-center gap-2 mb-3">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1.5 text-xs font-semibold text-navy border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          Back
+        </button>
       </div>
-
-      <div className="text-base font-semibold text-navy">Week ending {fmtDate(plan.week_ending)}</div>
-      <div className="text-[11px] text-gray-500 mb-3">
-        {plan.subject_name} · {plan.classroom_name}
-      </div>
-
-      {plan.status === 'returned' && plan.vetting_remarks && (
-        <div className="bg-red-50 border-l-[3px] border-red-600 px-3 py-2.5 mb-3">
-          <div className="text-xs font-semibold text-red-900">Returned for revision</div>
-          <div className="text-[11px] text-red-700 mt-0.5">{plan.vetting_remarks}</div>
-        </div>
-      )}
-
-      {plan.status === 'vetted' && (
-        <div className="bg-green-50 border-l-[3px] border-green-600 px-3 py-2.5 mb-3">
-          <div className="text-xs font-semibold text-green-900">
-            Vetted by {plan.vetted_by_name}
-          </div>
-          <div className="text-[11px] text-green-700 mt-0.5">
-            {fmtDate(plan.vetted_at)}
-            {plan.vetting_remarks && ` · ${plan.vetting_remarks}`}
-          </div>
-        </div>
-      )}
 
       {editingHeader ? (
         <div className="mb-3">
@@ -298,22 +261,131 @@ function PlanEditor({ planId, onBack }) {
           />
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-xl px-3.5 py-3 mb-3 flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="text-[13px] font-semibold text-navy">
-              {[plan.strand, plan.sub_strand].filter(Boolean).join(' · ') || 'No strand set'}
+        <div className={`bg-white rounded-xl p-4 mb-3 border ${
+          plan.status === 'submitted' ? 'border-blue-300'
+          : plan.status === 'returned' ? 'border-red-300'
+          : plan.status === 'vetted' ? 'border-green-300'
+          : 'border-gray-200'
+        }`}>
+          <div className="flex items-start justify-between gap-3 mb-2.5 flex-wrap">
+            <div>
+              <div className="text-[15px] font-semibold text-navy">
+                Week ending {fmtDate(plan.week_ending)}
+              </div>
+              <div className="text-xs text-gray-500 mt-0.5">
+                {plan.subject_name} · {plan.classroom_name}
+              </div>
             </div>
-            <div className="text-[11px] text-gray-500 mt-0.5">
-              {[plan.indicator_code, plan.tlr, plan.reference].filter(Boolean).join(' · ') || 'Add the week details'}
+            <div className="flex items-center gap-2">
+              <span className={`text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full ${STATUS_STYLES[plan.status]}`}>
+                {plan.status_display}
+              </span>
+              {editable && plan.strand && (
+                <button
+                  onClick={trySubmit}
+                  disabled={submitMutation.isPending}
+                  className="text-xs font-bold text-white bg-navy rounded-lg px-4 py-2 hover:bg-navy-light transition disabled:opacity-50"
+                >
+                  {submitMutation.isPending
+                    ? 'Submitting...'
+                    : plan.status === 'returned' ? 'Resubmit' : 'Submit for vetting'}
+                </button>
+              )}
             </div>
           </div>
-          {editable && (
-            <button
-              onClick={() => { setHeader(plan); setEditingHeader(true) }}
-              className="text-[11px] font-semibold text-navy flex-shrink-0 hover:underline"
-            >
-              Edit week
-            </button>
+
+          {plan.status === 'submitted' && (
+            <div className="bg-blue-50 border-l-[3px] border-blue-500 px-3 py-2.5 flex items-center gap-2">
+              <svg className="w-4 h-4 text-blue-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="text-xs text-blue-900">
+                Handed in {fmtDate(plan.submitted_at)} · read-only until it is vetted
+              </div>
+            </div>
+          )}
+
+          {plan.status === 'returned' && (
+            <div className="bg-red-50 border-l-[3px] border-red-700 px-3 py-2.5 flex items-start gap-2">
+              <svg className="w-4 h-4 text-red-700 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <div className="min-w-0">
+                <div className="text-xs font-semibold text-red-900">
+                  {plan.vetted_by_name} returned this on {fmtDate(plan.vetted_at)}
+                </div>
+                <div className="text-[11px] text-red-700 mt-0.5">{plan.vetting_remarks}</div>
+              </div>
+            </div>
+          )}
+
+          {plan.status === 'vetted' && (
+            <div className="bg-green-50 border-l-[3px] border-green-600 px-3 py-2.5 flex items-start gap-2">
+              <svg className="w-4 h-4 text-green-700 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+              </svg>
+              <div className="min-w-0">
+                <div className="text-xs font-semibold text-green-900">
+                  Vetted by {plan.vetted_by_name} on {fmtDate(plan.vetted_at)}
+                </div>
+                {plan.vetting_remarks && (
+                  <div className="text-[11px] text-green-700 mt-0.5">{plan.vetting_remarks}</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {editable && !plan.strand ? (
+            <div className="bg-amber-50 border-l-[3px] border-amber-600 px-3 py-2.5 flex items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <svg className="w-4 h-4 text-amber-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold text-amber-950">No strand set</div>
+                  <div className="text-[11px] text-amber-800">Add the week details before submitting</div>
+                </div>
+              </div>
+              <button
+                onClick={() => { setHeader(plan); setEditingHeader(true) }}
+                className="text-[11px] font-bold text-white bg-amber-600 px-3 py-1.5 rounded-lg hover:bg-amber-700 transition flex-shrink-0"
+              >
+                Add details
+              </button>
+            </div>
+          ) : (
+            <div className="bg-gray-50 rounded-lg px-3 py-2.5 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-xs font-semibold text-navy">
+                  {[plan.strand, plan.sub_strand].filter(Boolean).join(' · ')}
+                </div>
+                <div className="text-[11px] text-gray-500 mt-0.5">
+                  {[plan.indicator_code, plan.tlr, plan.reference].filter(Boolean).join(' · ') || 'No indicator set'}
+                </div>
+              </div>
+              {editable && (
+                <button
+                  onClick={() => { setHeader(plan); setEditingHeader(true) }}
+                  className="text-[11px] font-semibold text-navy flex-shrink-0 hover:underline"
+                >
+                  Edit week
+                </button>
+              )}
+            </div>
+          )}
+
+          {daysWritten > 0 && (
+            <div className="flex items-center gap-2.5 mt-3">
+              <div className="flex-1 h-[5px] bg-green-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-green-600 transition-all"
+                  style={{ width: `${(daysWritten / 5) * 100}%` }}
+                />
+              </div>
+              <span className="text-[11px] text-green-700 whitespace-nowrap">
+                {daysWritten} of 5 days written
+              </span>
+            </div>
           )}
         </div>
       )}
