@@ -185,7 +185,7 @@ function StudentDetail() {
   const [saveError, setSaveError] = useState('')
   const [saveSuccess, setSaveSuccess] = useState('')
   const [showPhotoPicker, setShowPhotoPicker] = useState(false)
-  const [pendingPhoto, setPendingPhoto] = useState(null)
+  const [stagedPhoto, setStagedPhoto] = useState(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
   const tabScrollRef = useRef(null)
