@@ -179,6 +179,21 @@ function StudentDetail() {
   const [classChangeRemarks, setClassChangeRemarks] = useState('')
   const [changingClass, setChangingClass] = useState(false)
   const [classChangeError, setClassChangeError] = useState('')
+  const [editingCard, setEditingCard] = useState(null)
+  const [editForm, setEditForm] = useState({})
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  const [saveSuccess, setSaveSuccess] = useState('')
+  const [showPhotoPicker, setShowPhotoPicker] = useState(false)
+  const [pendingPhoto, setPendingPhoto] = useState(null)
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['student-detail', studentId],
+    queryFn: () => getStudentDetail(studentId),
+  })
+
+  const student = data?.data
+
   const CARD_FIELDS = {
     background: ['place_of_birth', 'home_town', 'nationality', 'mother_tongue', 'religion'],
     academic: ['previous_school', 'boarding_status', 'house_dormitory'],
@@ -225,9 +240,9 @@ function StudentDetail() {
       setEditForm({})
       setTimeout(() => setSaveSuccess(''), 2500)
     } catch (err) {
-      const data = err.response?.data
-      const fieldError = data?.errors && Object.values(data.errors)[0]?.[0]
-      setSaveError(fieldError || data?.message || 'Could not save. Please try again.')
+      const errData = err.response?.data
+      const fieldError = errData?.errors && Object.values(errData.errors)[0]?.[0]
+      setSaveError(fieldError || errData?.message || 'Could not save. Please try again.')
     } finally {
       setSaving(false)
     }
