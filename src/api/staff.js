@@ -10,6 +10,11 @@ export async function getStaffDetail(staffId) {
   return response.data
 }
 
+export async function getMyStaffProfile() {
+  const response = await api.get('/staff/me/')
+  return response.data
+}
+
 export async function registerStaff(payload) {
   const formData = new FormData()
   Object.entries(payload).forEach(([key, value]) => {

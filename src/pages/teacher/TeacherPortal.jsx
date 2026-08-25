@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import PortalHeader from '../../components/layout/PortalHeader'
 import { getMyClassrooms } from '../../api/academics'
+import { getMyStaffProfile } from '../../api/staff'
 
 const crossCutting = [
   {
@@ -155,6 +156,64 @@ function ClassCard({ classroom }) {
   )
 }
 
+function UnassignedState({ firstName }) {
+  const { data } = useQuery({
+    queryKey: ['my-staff-profile'],
+    queryFn: getMyStaffProfile,
+    retry: false,
+  })
+
+  const profile = data?.data || null
+  const subjects = profile?.subject_specializations || []
+
+  return (
+    <div>
+      <div className="bg-white border border-gray-200 rounded-xl px-6 py-10 text-center mb-4">
+        <div className="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center mx-auto mb-3">
+          <svg className="w-5 h-5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <div className="text-lg font-semibold text-navy mb-1.5">
+          You&rsquo;re all set up{firstName ? `, ${firstName}` : ''}
+        </div>
+        <div className="text-[13px] text-gray-500 leading-relaxed max-w-md mx-auto">
+          Your classes and subjects haven&rsquo;t been assigned yet. Your school administrator
+          does that, and this page fills in as soon as they do.
+        </div>
+      </div>
+
+      {profile && (
+        <div className="bg-white border border-gray-200 rounded-xl px-5 py-4">
+          <div className="text-sm font-semibold text-navy">While you wait, check your details</div>
+          <div className="text-[12px] text-gray-400 mb-3">
+            These were entered during your registration. Tell the office if anything is wrong.
+          </div>
+
+          <ProfileRow label="Phone" value={profile.phone} />
+          <ProfileRow label="NTC license" value={profile.ntc_license_number} />
+          <ProfileRow label="SSNIT" value={profile.ssnit_number} />
+          <ProfileRow
+            label="Subjects"
+            value={subjects.length ? subjects.map((s) => s.name || s).join(', ') : ''}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ProfileRow({ label, value }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 py-2 border-t border-gray-100">
+      <span className="text-[13px] text-gray-500 flex-shrink-0">{label}</span>
+      <span className="text-[13px] text-navy text-right min-w-0 break-words">
+        {value || <span className="text-gray-300">Not set</span>}
+      </span>
+    </div>
+  )
+}
+
 function ViewToggle({ view, setView }) {
   const options = [
     { key: 'load', label: 'My teaching load' },
@@ -193,6 +252,8 @@ function TeacherPortal() {
 
   const classrooms = data?.data?.classrooms || []
   const totalSubjects = classrooms.reduce((sum, c) => sum + c.subjects.length, 0)
+  const unassigned = !isLoading && !isError && classrooms.length === 0
+  const firstName = ''
 
   return (
     <div className="min-h-screen">
@@ -200,14 +261,16 @@ function TeacherPortal() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-8">
 
-        <div className="flex items-center justify-between mb-4 gap-3">
-          <ViewToggle view={view} setView={setView} />
-          {view === 'load' && (
-            <span className="text-xs text-gray-400 whitespace-nowrap">
-              {classrooms.length} class{classrooms.length !== 1 ? 'es' : ''} · {totalSubjects} subject{totalSubjects !== 1 ? 's' : ''}
-            </span>
-          )}
-        </div>
+        {!unassigned && (
+          <div className="flex items-center justify-between mb-4 gap-3">
+            <ViewToggle view={view} setView={setView} />
+            {view === 'load' && (
+              <span className="text-xs text-gray-400 whitespace-nowrap">
+                {classrooms.length} class{classrooms.length !== 1 ? 'es' : ''} &middot; {totalSubjects} subject{totalSubjects !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+        )}
 
         <AnimatePresence mode="wait">
           {view === 'load' ? (
@@ -229,16 +292,16 @@ function TeacherPortal() {
               )}
 
               {!isLoading && !isError && classrooms.length === 0 && (
-                <div className="text-center py-16 text-gray-400 text-sm">
-                  No classes assigned to you yet.
-                </div>
+                <UnassignedState firstName={firstName} />
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                {classrooms.map((classroom) => (
-                  <ClassCard key={classroom.id} classroom={classroom} />
-                ))}
-              </div>
+              {classrooms.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                  {classrooms.map((classroom) => (
+                    <ClassCard key={classroom.id} classroom={classroom} />
+                  ))}
+                </div>
+              )}
             </motion.div>
           ) : (
             <motion.div
