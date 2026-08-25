@@ -164,7 +164,7 @@ function UnassignedState({ firstName }) {
   })
 
   const profile = data?.data || null
-  const subjects = profile?.subject_specializations || []
+  const subjects = profile?.subject_specializations_display || []
 
   return (
     <div>
@@ -195,7 +195,7 @@ function UnassignedState({ firstName }) {
           <ProfileRow label="SSNIT" value={profile.ssnit_number} />
           <ProfileRow
             label="Subjects"
-            value={subjects.length ? subjects.map((s) => s.name || s).join(', ') : ''}
+            value={subjects.length ? subjects.join(', ') : ''}
           />
         </div>
       )}
