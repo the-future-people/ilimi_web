@@ -6,6 +6,7 @@ import Breadcrumb from '../../components/layout/Breadcrumb'
 import { getStaffDetail } from '../../api/staff'
 import { inviteStaff } from '../../api/staffAccess'
 import { useAuth } from '../../context/AuthContext'
+import { API_BASE_URL } from '../../config'
 
 const ROLE_OPTIONS = [
   { value: 'teacher', label: 'Teacher' },
@@ -246,8 +247,8 @@ function StaffDetail() {
         <div className="bg-white border border-gray-200 rounded-xl p-4 mb-2.5 mt-4">
           <div className="flex items-start gap-3.5 flex-wrap">
             <div className="w-16 h-16 rounded-xl bg-navy flex items-center justify-center text-xl font-bold text-gold overflow-hidden flex-shrink-0">
-              {staff.photo
-                ? <img src={staff.photo} alt="" className="w-full h-full object-cover" />
+            {staff.photo
+                ? <img src={`${API_BASE_URL}${staff.photo}`} alt="" className="w-full h-full object-cover" />
                 : initialsOf(staff.full_name)}
             </div>
 

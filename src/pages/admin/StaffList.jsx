@@ -56,9 +56,12 @@ function StaffCard({ member }) {
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-sm font-bold text-navy truncate">
+          <Link
+            to={`/admin/staff/${member.id}`}
+            className="text-sm font-bold text-navy truncate hover:text-gold transition block"
+          >
             {titleLabel(member.title)}{member.full_name}
-          </div>
+          </Link>
           <div className="text-xs text-gray-400">
             {member.years_of_experience ? `${member.years_of_experience} yr${member.years_of_experience !== 1 ? 's' : ''} experience` : 'Experience not set'}
           </div>
