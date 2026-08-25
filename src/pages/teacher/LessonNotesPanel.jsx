@@ -423,15 +423,26 @@ function LessonNotesPanel({ classroomId, subjects = [] }) {
     })
   }
 
-  const copyLast = () => {
+   const copyLast = async () => {
     const last = plans[0]
     if (!last) return setToast('No earlier plan to copy.')
-    setNewPlan({
-      strand: last.strand,
-      sub_strand: last.sub_strand,
-      week_ending: nextFriday(),
-    })
-    setCreating(true)
+    try {
+      const res = await getLessonPlan(last.id)
+      const p = res.data
+      setNewPlan({
+        strand: p.strand,
+        sub_strand: p.sub_strand,
+        content_standard_code: p.content_standard_code,
+        core_competencies: p.core_competencies,
+        key_words: p.key_words,
+        tlr: p.tlr,
+        reference: p.reference,
+        week_ending: nextFriday(),
+      })
+      setCreating(true)
+    } catch {
+      setToast('Could not copy the last plan.')
+    }
   }
 
   if (!subjects.length) {
