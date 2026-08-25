@@ -93,7 +93,7 @@ const editInput = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm te
 
 function Card({ icon, title, action, children }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+    <div className="bg-white rounded-2xl border border-gray-200 p-5">
       <div className="flex items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-navy flex-shrink-0">{icon}</span>
@@ -409,9 +409,7 @@ function StudentDetail() {
     <div className="min-h-screen pb-12">
       <PortalHeader />
 
-      {/* Sticky breadcrumb + tabs */}
-      <div className="sticky top-16 z-40 bg-gray-100/95 backdrop-blur-sm pt-6">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 pt-6">
           <Breadcrumb items={[
             {
               label: 'Dashboard',
@@ -437,12 +435,62 @@ function StudentDetail() {
               )
             },
           ]} />
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm relative">
+          <div className="bg-white rounded-2xl border border-gray-200 mb-5">
+            <div className="p-5 pb-4">
+              <div className="flex items-start gap-4">
+                <div className="relative w-16 h-16 flex-shrink-0">
+                  <div className="w-16 h-16 rounded-xl bg-navy text-white text-lg font-bold flex items-center justify-center overflow-hidden">
+                    {student.photo ? (
+                      <img src={`${API_BASE_URL}${student.photo}`} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      initials(student.full_name)
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setShowPhotoPicker(true)}
+                    title="Change photo"
+                    aria-label="Change photo"
+                    className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-gold text-navy flex items-center justify-center hover:bg-gold-light transition"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <h1 className="font-serif text-xl sm:text-2xl font-bold text-navy truncate">{student.full_name}</h1>
+                  <div className="text-[13px] text-slate-500 mt-1">
+                    {student.student_id}
+                    {student.classroom_name && <span> &middot; {student.classroom_name}</span>}
+                    {student.enrollment_date && <span> &middot; Enrolled {formatDate(student.enrollment_date)}</span>}
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap mt-2.5">
+                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full capitalize ${statusStyles[student.status] || 'bg-gray-100 text-gray-500'}`}>
+                      {student.status}
+                    </span>
+                    {student.boarding_status && (
+                      <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
+                        {labelFor(BOARDING_CHOICES, student.boarding_status)}
+                      </span>
+                    )}
+                    {student.house_dormitory && (
+                      <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700">
+                        {student.house_dormitory}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative border-t border-gray-100">
             {canScrollLeft && (
               <button
                 onClick={() => scrollTabs('left')}
                 aria-label="Scroll tabs left"
-                className="absolute left-0 top-0 bottom-0 z-10 w-10 flex items-center justify-center bg-gradient-to-r from-white via-white to-transparent rounded-l-2xl"
+                className="absolute left-0 top-0 bottom-0 z-10 w-10 flex items-center justify-center bg-gradient-to-r from-white via-white to-transparent rounded-bl-2xl"
               >
                 <svg className="w-4 h-4 text-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
@@ -453,7 +501,7 @@ function StudentDetail() {
               <button
                 onClick={() => scrollTabs('right')}
                 aria-label="Scroll tabs right"
-                className="absolute right-0 top-0 bottom-0 z-10 w-10 flex items-center justify-center bg-gradient-to-l from-white via-white to-transparent rounded-r-2xl"
+                className="absolute right-0 top-0 bottom-0 z-10 w-10 flex items-center justify-center bg-gradient-to-l from-white via-white to-transparent rounded-br-2xl"
               >
                 <svg className="w-4 h-4 text-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
@@ -475,59 +523,6 @@ function StudentDetail() {
                   {tab.label}
                 </button>
               ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 pt-5">
-
-        {/* Profile header card */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5">
-          <div className="flex items-start gap-4">
-            <div className="relative w-16 h-16 flex-shrink-0">
-              <div className="w-16 h-16 rounded-xl bg-navy text-white text-lg font-bold flex items-center justify-center overflow-hidden">
-                {student.photo ? (
-                  <img src={`${API_BASE_URL}${student.photo}`} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  initials(student.full_name)
-                )}
-              </div>
-              <button
-                onClick={() => setShowPhotoPicker(true)}
-                title="Change photo"
-                aria-label="Change photo"
-                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-gold text-navy flex items-center justify-center shadow-md hover:bg-gold-light transition"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <h1 className="font-serif text-xl sm:text-2xl font-bold text-navy truncate">{student.full_name}</h1>
-              <div className="text-[13px] text-slate-500 mt-1">
-                {student.student_id}
-                {student.classroom_name && <span> &middot; {student.classroom_name}</span>}
-                {student.enrollment_date && <span> &middot; Enrolled {formatDate(student.enrollment_date)}</span>}
-              </div>
-              <div className="flex items-center gap-2 flex-wrap mt-2.5">
-                <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full capitalize ${statusStyles[student.status] || 'bg-gray-100 text-gray-500'}`}>
-                  {student.status}
-                </span>
-                {student.boarding_status && (
-                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
-                    {labelFor(BOARDING_CHOICES, student.boarding_status)}
-                  </span>
-                )}
-                {student.house_dormitory && (
-                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700">
-                    {student.house_dormitory}
-                  </span>
-                )}
-              </div>
             </div>
           </div>
         </div>
@@ -785,7 +780,7 @@ function StudentDetail() {
 
         {/* Documents */}
         {activeTab === 'documents' && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <div className="bg-white rounded-2xl border border-gray-200">
             <DocumentsTab studentId={studentId} />
           </div>
         )}
