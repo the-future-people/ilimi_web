@@ -764,7 +764,7 @@ function StudentDetail() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowPhotoPicker(false)}>
           <div className="bg-white rounded-2xl p-5 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
             <div className="font-serif text-lg font-bold text-navy mb-1">Change Photo</div>
-            <div className="text-xs text-gray-400 mb-4">The new photo saves when you save the profile.</div>
+            <div className="text-xs text-gray-400 mb-4">The photo uploads as soon as you press Done.</div>
             <PhotoCapture value={stagedPhoto} onChange={setStagedPhoto} allowCamera />
             <div className="flex items-center gap-2 mt-4">
               <button
@@ -773,8 +773,23 @@ function StudentDetail() {
               >
                 Clear
               </button>
-              <button
-                onClick={() => setShowPhotoPicker(false)}
+                            <button
+                onClick={async () => {
+                  if (!stagedPhoto) return setShowPhotoPicker(false)
+                  setSaving(true)
+                  try {
+                    await uploadStudentFile(studentId, 'photo', stagedPhoto)
+                    await queryClient.invalidateQueries({ queryKey: ['student-detail', studentId] })
+                    setStagedPhoto(null)
+                    setShowPhotoPicker(false)
+                    setSaveSuccess('Photo updated.')
+                    setTimeout(() => setSaveSuccess(''), 2500)
+                  } catch {
+                    setSaveError('Could not upload the photo.')
+                  } finally {
+                    setSaving(false)
+                  }
+                }}
                 className="flex-1 bg-navy text-white text-sm font-bold py-2.5 rounded-lg hover:bg-navy-light transition"
               >
                 Done
