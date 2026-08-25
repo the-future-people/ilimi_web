@@ -24,6 +24,7 @@ import CollectPayment from './pages/accountant/CollectPayment'
 import RegistrarPortal from './pages/registrar/RegistrarPortal'
 import GuardianManagement from './pages/registrar/GuardianManagement'
 import StaffSetup from './pages/StaffSetup'
+import StaffDetail from './pages/admin/StaffDetail'
 const ADMIN_ROLES = ['school_admin', 'branch_manager']
 
 
@@ -67,6 +68,14 @@ function App() {
         element={
           <ProtectedRoute requiredRole={ADMIN_ROLES}>
             <AdminPortal />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/staff/:staffId"
+        element={
+          <ProtectedRoute requiredRole={[...ADMIN_ROLES, 'registrar']}>
+            <StaffDetail />
           </ProtectedRoute>
         }
       />
