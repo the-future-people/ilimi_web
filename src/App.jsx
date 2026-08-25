@@ -23,6 +23,7 @@ import AccountantPortal from './pages/accountant/AccountantPortal'
 import CollectPayment from './pages/accountant/CollectPayment'
 import RegistrarPortal from './pages/registrar/RegistrarPortal'
 import GuardianManagement from './pages/registrar/GuardianManagement'
+import StaffSetup from './pages/StaffSetup'
 const ADMIN_ROLES = ['school_admin', 'branch_manager']
 
 
@@ -58,6 +59,7 @@ function App() {
       <Route path="/select-membership" element={<SelectMembership />} />
       <Route path="/redirect" element={<RoleRedirect />} />
       <Route path="/enrol/:token" element={<PublicEnrolForm />} />
+      <Route path="/staff/setup/:token" element={<StaffSetup />} />
 
       {/* ── Admin ──────────────────────────────────────────────── */}
       <Route
