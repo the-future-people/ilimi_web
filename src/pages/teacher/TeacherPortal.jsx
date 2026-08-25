@@ -156,7 +156,7 @@ function ClassCard({ classroom }) {
   )
 }
 
-function UnassignedState({ firstName }) {
+function UnassignedState() {
   const { data } = useQuery({
     queryKey: ['my-staff-profile'],
     queryFn: getMyStaffProfile,
@@ -175,7 +175,7 @@ function UnassignedState({ firstName }) {
           </svg>
         </div>
         <div className="text-lg font-semibold text-navy mb-1.5">
-          You&rsquo;re all set up{firstName ? `, ${firstName}` : ''}
+          You&rsquo;re all set up{profile?.first_name ? `, ${profile.first_name}` : ''}
         </div>
         <div className="text-[13px] text-gray-500 leading-relaxed max-w-md mx-auto">
           Your classes and subjects haven&rsquo;t been assigned yet. Your school administrator
@@ -195,7 +195,7 @@ function UnassignedState({ firstName }) {
           <ProfileRow label="SSNIT" value={profile.ssnit_number} />
           <ProfileRow
             label="Subjects"
-            value={subjects.length ? subjects.join(', ') : ''}
+            value={subjects.length ? subjects.map((s) => s.name).join(', ') : ''}
           />
         </div>
       )}
@@ -253,7 +253,6 @@ function TeacherPortal() {
   const classrooms = data?.data?.classrooms || []
   const totalSubjects = classrooms.reduce((sum, c) => sum + c.subjects.length, 0)
   const unassigned = !isLoading && !isError && classrooms.length === 0
-  const firstName = ''
 
   return (
     <div className="min-h-screen">
@@ -292,7 +291,7 @@ function TeacherPortal() {
               )}
 
               {!isLoading && !isError && classrooms.length === 0 && (
-                <UnassignedState firstName={firstName} />
+              <UnassignedState />
               )}
 
               {classrooms.length > 0 && (
