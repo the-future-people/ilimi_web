@@ -498,33 +498,41 @@ function StaffRegistrationWizard() {
             {/* STEP 1 — Personal */}
             {step === 1 && (
               <div className="flex flex-col gap-5">
-                <div>
-                  <div className="text-sm font-bold text-navy mb-1">Staff Photo</div>
-                  <div className="text-xs text-gray-400 mb-4">
-                    Optional. Take one now, or add it later from the staff profile.
+                                <div className="text-sm font-bold text-navy">Personal Information</div>
+
+                <div className="flex flex-col sm:flex-row gap-5 items-start">
+                  <div className="flex-1 min-w-0 w-full flex flex-col gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <Field label="Title">
+                        <select className={inputClass} value={form.title} onChange={(e) => update('title', e.target.value)}>
+                          {TITLE_CHOICES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                        </select>
+                      </Field>
+                      <Field label="First Name" required error={errors.first_name}>
+                        <input className={errors.first_name ? inputErrorClass : inputClass} value={form.first_name} onChange={(e) => update('first_name', e.target.value)} />
+                      </Field>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <Field label="Middle Name">
+                        <input className={inputClass} value={form.middle_name} onChange={(e) => update('middle_name', e.target.value)} />
+                      </Field>
+                      <Field label="Last Name" required error={errors.last_name}>
+                        <input className={errors.last_name ? inputErrorClass : inputClass} value={form.last_name} onChange={(e) => update('last_name', e.target.value)} />
+                      </Field>
+                    </div>
                   </div>
-                  <PhotoCapture value={form.photo} onChange={(file) => update('photo', file)} allowCamera />
+
+                  <div className="flex-shrink-0">
+                    <PhotoCapture
+                      value={form.photo}
+                      onChange={(file) => update('photo', file)}
+                      allowCamera
+                      variant="square"
+                    />
+                  </div>
                 </div>
 
-                <div className="pt-4 border-t border-gray-100">
-                  <div className="text-sm font-bold text-navy mb-4">Personal Information</div>
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                    <Field label="Title">
-                      <select className={inputClass} value={form.title} onChange={(e) => update('title', e.target.value)}>
-                        {TITLE_CHOICES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                      </select>
-                    </Field>
-                    <Field label="First Name" required error={errors.first_name}>
-                      <input className={errors.first_name ? inputErrorClass : inputClass} value={form.first_name} onChange={(e) => update('first_name', e.target.value)} />
-                    </Field>
-                    <Field label="Middle Name">
-                      <input className={inputClass} value={form.middle_name} onChange={(e) => update('middle_name', e.target.value)} />
-                    </Field>
-                    <Field label="Last Name" required error={errors.last_name}>
-                      <input className={errors.last_name ? inputErrorClass : inputClass} value={form.last_name} onChange={(e) => update('last_name', e.target.value)} />
-                    </Field>
-                  </div>
-                </div>
+                <div className="pt-2 border-t border-gray-100" />
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <Field label="Date of Birth">
