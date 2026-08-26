@@ -181,7 +181,7 @@ function StaffRegistrationWizard() {
     phone: '', whatsapp_number: '', secondary_phone: '', email: '',
     residential_address: '', digital_address: '', city: '', region: '',
     // Step 4 — Employment & Qualifications
-    employment_type: 'permanent', time_commitment: 'full_time', staff_category: '',
+    employment_type: 'permanent', time_commitment: 'full_time', staff_category: '', teaches: false,
     position_name: '', salary_grade: '', date_of_first_appointment: '', date_joined_school: '',
     is_on_probation: false, probation_end_date: '', is_head_of_department: false,
     leave_entitlement_days: 21, highest_qualification: '', institution_attended: '',
@@ -206,6 +206,17 @@ function StaffRegistrationWizard() {
     })
   }
 
+    const handleCategoryChange = (value) => {
+    // Teaching staff always teach. For anyone else it becomes a deliberate
+    // choice, so the tick is cleared rather than carried over from a
+    // previous selection.
+    setForm((prev) => ({
+      ...prev,
+      staff_category: value,
+      teaches: value === 'teaching',
+    }))
+  }
+
   const validateStep = (s) => {
     const errs = {}
     if (s === 1) {
@@ -218,6 +229,7 @@ function StaffRegistrationWizard() {
     }
     if (s === 4) {
       if (!form.employment_type) errs.employment_type = 'Employment type is required.'
+      if (!form.staff_category) errs.staff_category = 'Staff category is required.'
     }
     if (s === 5) {
       const contacts = form.emergency_contacts
@@ -291,6 +303,7 @@ function StaffRegistrationWizard() {
       employment_type: form.employment_type,
       time_commitment: form.time_commitment,
       staff_category: form.staff_category,
+      teaches: form.teaches,
       position_name: form.position_name,
       salary_grade: form.salary_grade,
       date_of_first_appointment: form.date_of_first_appointment || undefined,
@@ -566,8 +579,8 @@ function StaffRegistrationWizard() {
                       {TIME_COMMITMENT_CHOICES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                     </select>
                   </Field>
-                  <Field label="Staff Category">
-                    <select className={inputClass} value={form.staff_category} onChange={(e) => update('staff_category', e.target.value)}>
+                    <Field label="Staff Category" required error={errors.staff_category}>
+                    <select className={errors.staff_category ? inputErrorClass : inputClass} value={form.staff_category} onChange={(e) => handleCategoryChange(e.target.value)}>
                       {STAFF_CATEGORY_CHOICES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
                     </select>
                   </Field>
@@ -575,7 +588,26 @@ function StaffRegistrationWizard() {
 
                 <PositionTypeahead value={form.position_name} onChange={(text) => update('position_name', text)} />
 
-                {form.staff_category === 'teaching' && (
+                {form.staff_category && form.staff_category !== 'teaching' && (
+                  <div className="bg-gray-50 rounded-lg p-3.5 flex gap-3 items-start">
+                    <input
+                      type="checkbox"
+                      id="teaches"
+                      checked={form.teaches}
+                      onChange={(e) => update('teaches', e.target.checked)}
+                      className="mt-0.5 flex-shrink-0"
+                    />
+                    <label htmlFor="teaches" className="cursor-pointer">
+                      <div className="text-sm font-semibold text-navy">This person also teaches classes</div>
+                      <div className="text-[11px] text-gray-500 mt-0.5">
+                        Tick this for a bursar, head of academics or anyone outside teaching staff
+                        who still takes a class. They will appear on the assignment screen.
+                      </div>
+                    </label>
+                  </div>
+                )}
+
+                {(form.staff_category === 'teaching' || form.teaches) && (
                   <Field label="Subject Specializations">
                     <div className="flex flex-wrap gap-2 border border-gray-200 rounded-lg p-3">
                       {subjects.length === 0 && (
