@@ -189,7 +189,7 @@ function StaffRegistrationWizard() {
     // Step 5 — Banking & Next of Kin
     bank_name: '', bank_branch: '', bank_account_number: '', momo_number: '',
     next_of_kin_name: '', next_of_kin_relationship: '', next_of_kin_phone: '', next_of_kin_address: '',
-    emergency_contacts: [],
+    emergency_contacts: [{ full_name: '', relationship: '', phone: '', whatsapp_number: '' }],
   })
 
   const update = (field, value) => setForm((prev) => ({ ...prev, [field]: value }))
@@ -223,6 +223,7 @@ function StaffRegistrationWizard() {
       if (!form.first_name.trim()) errs.first_name = 'First name is required.'
       if (!form.last_name.trim()) errs.last_name = 'Last name is required.'
       if (!form.gender) errs.gender = 'Gender is required.'
+      if (!form.ghana_card_number.trim()) errs.ghana_card_number = 'Ghana Card number is required.'
     }
     if (s === 3) {
       if (!form.phone.trim()) errs.phone = 'Phone number is required.'
@@ -475,8 +476,8 @@ function StaffRegistrationWizard() {
                 <div className="pt-2 border-t border-gray-100" />
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <Field label="Ghana Card Number">
-                    <input className={inputClass} placeholder="e.g. GHA-123456789-0" value={form.ghana_card_number} onChange={(e) => update('ghana_card_number', e.target.value)} />
+                  <Field label="Ghana Card Number" required error={errors.ghana_card_number}>
+                  <input className={errors.ghana_card_number ? inputErrorClass : inputClass} placeholder="e.g. GHA-123456789-0" value={form.ghana_card_number} onChange={(e) => update('ghana_card_number', e.target.value)} />
                   </Field>
                   <Field label="SSNIT Number">
                     <input className={inputClass} value={form.ssnit_number} onChange={(e) => update('ssnit_number', e.target.value)} />
@@ -792,7 +793,7 @@ function StaffRegistrationWizard() {
                     <div className="text-sm text-gray-400">None added</div>
                   ) : (
                     <div className="text-sm text-navy">
-                      {form.emergency_contacts[0].full_name} Â· {form.emergency_contacts[0].phone}
+                    {form.emergency_contacts[0].full_name} &middot; {form.emergency_contacts[0].phone}
                     </div>
                   )}
                 </div>
