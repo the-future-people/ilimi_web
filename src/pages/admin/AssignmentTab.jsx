@@ -419,7 +419,7 @@ function AssignmentTab() {
     queryKey: ['all-staff-unfiltered'],
     queryFn: () => getAllStaff({ page_size: 200 }),
   })
-  const staff = (staffData?.data?.staff || []).filter((s) => s.staff_category === 'teaching')
+  const staff = (staffData?.data?.staff || []).filter((s) => s.teaches)
 
   const { data: subjectsData } = useQuery({ queryKey: ['subjects'], queryFn: getSubjects })
   const allSubjects = subjectsData?.data?.subjects || []
