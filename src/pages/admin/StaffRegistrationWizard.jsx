@@ -458,9 +458,7 @@ function StaffRegistrationWizard() {
           },
         ]} />
 
-        <h1 className="font-serif text-2xl sm:text-3xl font-bold text-navy mb-6">Register Staff Member</h1>
-
-        <div className="flex items-center gap-1 mb-6 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-1 mt-6 mb-6 overflow-x-auto no-scrollbar">
           {steps.map((s, i) => (
             <div key={s.num} className="flex items-center flex-shrink-0">
               <div className="flex flex-col items-center gap-1.5">
