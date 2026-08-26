@@ -428,7 +428,7 @@ function StaffRegistrationWizard() {
   ].filter(Boolean).join(' ')
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#f0ece1]">
       <PortalHeader />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-8">
@@ -484,7 +484,7 @@ function StaffRegistrationWizard() {
           ))}
         </div>
 
-        <div className={step === 6 ? '' : 'bg-white rounded-2xl shadow-lg p-5 sm:p-8'}>
+        <div className={step === 6 ? '' : 'bg-[#faf8f4] rounded-2xl shadow-lg p-5 sm:p-8'}>
           <div
             className="transition-all duration-200 ease-out"
             style={{
