@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Breadcrumb from '../../components/layout/Breadcrumb'
 import { useAuth } from '../../context/AuthContext'
 import { useQuery } from '@tanstack/react-query'
 import PortalHeader from '../../components/layout/PortalHeader'
-import { getSchoolClassrooms } from '../../api/academics'
 import { getSubjects } from '../../api/academics'
 import { registerStaff } from '../../api/staff'
 import PhotoCapture from '../../components/PhotoCapture'
@@ -125,12 +124,24 @@ const BANK_CHOICES = [
 
 const steps = [
   { num: 1, label: 'Personal' },
-  { num: 2, label: 'Photo & Fingerprint' },
-  { num: 3, label: 'Contact' },
+  { num: 2, label: 'Identity' },
+  { num: 3, label: 'Contact & Emergency' },
   { num: 4, label: 'Employment' },
-  { num: 5, label: 'Banking & Next of Kin' },
+  { num: 5, label: 'Pay & Qualifications' },
   { num: 6, label: 'Review' },
 ]
+
+const labelFor = (choices, value) => {
+  const found = choices.find((c) => c.value === value)
+  return found && found.value ? found.label : ''
+}
+
+const formatDate = (value) => {
+  if (!value) return ''
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
 
 function Field({ label, required, error, children }) {
   return (
@@ -147,6 +158,66 @@ function Field({ label, required, error, children }) {
 const inputClass = "px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-gold"
 const inputErrorClass = "px-3 py-2.5 border border-red-300 rounded-lg text-sm outline-none focus:border-red-400"
 
+// ── Review cards ──────────────────────────────────────────────────────────
+// Deliberately mirrors the staff detail page, so what an administrator
+// confirms here is what they will see on the record afterwards.
+
+function ReviewCard({ icon, title, children }) {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-navy flex-shrink-0">{icon}</span>
+        <h3 className="text-[15px] font-bold text-navy">{title}</h3>
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function Row({ label, value }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 py-[7px]">
+      <span className="text-[13px] text-slate-500 flex-shrink-0">{label}</span>
+      <span className="text-[13px] text-navy text-right min-w-0 break-words">
+        {value || <span className="text-gray-300">Not set</span>}
+      </span>
+    </div>
+  )
+}
+
+const icons = {
+  contact: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+    </svg>
+  ),
+  employment: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+  ),
+  identity: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0h4M9 14a2 2 0 100-4 2 2 0 000 4zm0 0c-1.3 0-2.4.8-2.8 2M15 12h3m-3 3h2" />
+    </svg>
+  ),
+  qualifications: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+    </svg>
+  ),
+  pay: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-4h6v4" />
+    </svg>
+  ),
+  emergency: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.74-2.99l-6.93-12a2 2 0 00-3.48 0l-6.93 12A2 2 0 005.07 19z" />
+    </svg>
+  ),
+}
+
 function StaffRegistrationWizard() {
   const { activeMember } = useAuth()
   const navigate = useNavigate()
@@ -156,13 +227,6 @@ function StaffRegistrationWizard() {
   const [phase, setPhase] = useState('form') // 'form' | 'submitting' | 'success' | 'error'
   const [submitError, setSubmitError] = useState('')
   const [successData, setSuccessData] = useState(null)
-  const [confirmSkipPhoto, setConfirmSkipPhoto] = useState(false)
-
-  const { data: classroomsData } = useQuery({
-    queryKey: ['school-classrooms'],
-    queryFn: getSchoolClassrooms,
-  })
-  const classrooms = classroomsData?.data?.classrooms || []
 
   const { data: subjectsData } = useQuery({
     queryKey: ['all-subjects'],
@@ -171,25 +235,26 @@ function StaffRegistrationWizard() {
   const subjects = subjectsData?.data?.subjects || subjectsData?.data || []
 
   const [form, setForm] = useState({
-    // Step 1 — Personal & Documents
+    // Step 1 — Personal
+    photo: null,
     title: '', first_name: '', middle_name: '', last_name: '', date_of_birth: '',
     gender: '', nationality: 'Ghanaian', marital_status: '', number_of_dependants: 0,
-    blood_group: 'unknown', ghana_card_number: '', ssnit_number: '', ntc_license_number: '',
-    // Step 2 — Photo & Fingerprint
-    photo: null, fingerprint_data: null,
-    // Step 3 — Contact & Address
+    blood_group: 'unknown',
+    // Step 2 — Identity
+    ghana_card_number: '', ssnit_number: '', ntc_license_number: '',
+    fingerprint_data: null,
+    // Step 3 — Contact & Emergency
     phone: '', whatsapp_number: '', secondary_phone: '', email: '',
     residential_address: '', digital_address: '', city: '', region: '',
-    // Step 4 — Employment & Qualifications
-    employment_type: 'permanent', time_commitment: 'full_time', staff_category: '', teaches: false,
-    position_name: '', salary_grade: '', date_of_first_appointment: '', date_joined_school: '',
-    is_on_probation: false, probation_end_date: '', is_head_of_department: false,
-    leave_entitlement_days: 21, highest_qualification: '', institution_attended: '',
-    years_of_experience: 0, subject_specializations: [],
-    // Step 5 — Banking & Next of Kin
-    bank_name: '', bank_branch: '', bank_account_number: '', momo_number: '',
-    next_of_kin_name: '', next_of_kin_relationship: '', next_of_kin_phone: '', next_of_kin_address: '',
     emergency_contacts: [{ full_name: '', relationship: '', phone: '', whatsapp_number: '' }],
+    // Step 4 — Employment
+    employment_type: 'permanent', time_commitment: 'full_time', staff_category: '', teaches: false,
+    position_name: '', branch: '', date_of_first_appointment: '', date_joined_school: '',
+    is_on_probation: false, probation_end_date: '', is_head_of_department: false,
+    leave_entitlement_days: 21, subject_specializations: [],
+    // Step 5 — Pay & Qualifications
+    salary_grade: '', bank_name: '', bank_branch: '', bank_account_number: '', momo_number: '',
+    highest_qualification: '', institution_attended: '', years_of_experience: 0,
   })
 
   const update = (field, value) => setForm((prev) => ({ ...prev, [field]: value }))
@@ -206,7 +271,7 @@ function StaffRegistrationWizard() {
     })
   }
 
-    const handleCategoryChange = (value) => {
+  const handleCategoryChange = (value) => {
     // Teaching staff always teach. For anyone else it becomes a deliberate
     // choice, so the tick is cleared rather than carried over from a
     // previous selection.
@@ -219,35 +284,43 @@ function StaffRegistrationWizard() {
 
   const validateStep = (s) => {
     const errs = {}
+
     if (s === 1) {
       if (!form.first_name.trim()) errs.first_name = 'First name is required.'
       if (!form.last_name.trim()) errs.last_name = 'Last name is required.'
       if (!form.gender) errs.gender = 'Gender is required.'
+    }
+
+    if (s === 2) {
       if (!form.ghana_card_number.trim()) errs.ghana_card_number = 'Ghana Card number is required.'
     }
+
     if (s === 3) {
       if (!form.phone.trim()) errs.phone = 'Phone number is required.'
+
+      // At least one reachable emergency contact. The first row always
+      // exists, so this cannot be skipped by leaving the list empty.
+      const contacts = form.emergency_contacts.length
+        ? form.emergency_contacts
+        : [{}]
+      const contactErrors = contacts.map((c, i) => {
+        if (i !== 0) return {}
+        const ce = {}
+        if (!c.full_name?.trim()) ce.full_name = 'Required.'
+        if (!c.relationship) ce.relationship = 'Required.'
+        if (!c.phone?.trim()) ce.phone = 'Required.'
+        return ce
+      })
+      if (contactErrors.some((e) => Object.keys(e).length > 0)) {
+        errs.emergency_contacts = contactErrors
+      }
     }
+
     if (s === 4) {
       if (!form.employment_type) errs.employment_type = 'Employment type is required.'
       if (!form.staff_category) errs.staff_category = 'Staff category is required.'
     }
-    if (s === 5) {
-      const contacts = form.emergency_contacts
-      if (contacts.length > 0) {
-        const contactErrors = contacts.map((c, i) => {
-          if (i !== 0) return {}
-          const ce = {}
-          if (!c.full_name?.trim()) ce.full_name = 'Required.'
-          if (!c.relationship) ce.relationship = 'Required.'
-          if (!c.phone?.trim()) ce.phone = 'Required.'
-          return ce
-        })
-        if (contactErrors.some((e) => Object.keys(e).length > 0)) {
-          errs.emergency_contacts = contactErrors
-        }
-      }
-    }
+
     setErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -261,12 +334,7 @@ function StaffRegistrationWizard() {
   }
 
   const goNext = () => {
-    if (step === 2 && !form.photo && !confirmSkipPhoto) {
-      setConfirmSkipPhoto(true)
-      return
-    }
     if (validateStep(step)) {
-      setConfirmSkipPhoto(false)
       changeStep(Math.min(step + 1, 6))
     }
   }
@@ -321,10 +389,6 @@ function StaffRegistrationWizard() {
       bank_branch: form.bank_branch,
       bank_account_number: form.bank_account_number,
       momo_number: form.momo_number,
-      next_of_kin_name: form.next_of_kin_name,
-      next_of_kin_relationship: form.next_of_kin_relationship,
-      next_of_kin_phone: form.next_of_kin_phone,
-      next_of_kin_address: form.next_of_kin_address,
       emergency_contacts: form.emergency_contacts,
     }
 
@@ -333,12 +397,12 @@ function StaffRegistrationWizard() {
       setSuccessData(res.data || res)
       setPhase('success')
     } catch (err) {
-            const data = err.response?.data
+      const data = err.response?.data
       const fieldError =
         data?.errors && typeof data.errors === 'object'
           ? Object.entries(data.errors)
               .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs[0] : msgs}`)
-              .join(' · ')
+              .join(' \u00B7 ')
           : null
       const msg =
         (typeof data?.message === 'string' && data.message)
@@ -354,6 +418,14 @@ function StaffRegistrationWizard() {
   const selectedSubjectNames = subjects
     .filter((s) => form.subject_specializations.includes(s.id))
     .map((s) => s.name)
+
+  const primaryContact = form.emergency_contacts[0] || {}
+  const fullName = [
+    labelFor(TITLE_CHOICES, form.title),
+    form.first_name,
+    form.middle_name,
+    form.last_name,
+  ].filter(Boolean).join(' ')
 
   return (
     <div className="min-h-screen">
@@ -414,7 +486,7 @@ function StaffRegistrationWizard() {
           ))}
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg p-5 sm:p-8">
+        <div className={step === 6 ? '' : 'bg-white rounded-2xl shadow-lg p-5 sm:p-8'}>
           <div
             className="transition-all duration-200 ease-out"
             style={{
@@ -423,26 +495,37 @@ function StaffRegistrationWizard() {
             }}
           >
 
-            {/* STEP 1 — Personal & Documents */}
+            {/* STEP 1 — Personal */}
             {step === 1 && (
               <div className="flex flex-col gap-5">
-                <div className="text-sm font-bold text-navy">Personal Information</div>
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                  <Field label="Title">
-                    <select className={inputClass} value={form.title} onChange={(e) => update('title', e.target.value)}>
-                      {TITLE_CHOICES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                    </select>
-                  </Field>
-                  <Field label="First Name" required error={errors.first_name}>
-                    <input className={errors.first_name ? inputErrorClass : inputClass} value={form.first_name} onChange={(e) => update('first_name', e.target.value)} />
-                  </Field>
-                  <Field label="Middle Name">
-                    <input className={inputClass} value={form.middle_name} onChange={(e) => update('middle_name', e.target.value)} />
-                  </Field>
-                  <Field label="Last Name" required error={errors.last_name}>
-                    <input className={errors.last_name ? inputErrorClass : inputClass} value={form.last_name} onChange={(e) => update('last_name', e.target.value)} />
-                  </Field>
+                <div>
+                  <div className="text-sm font-bold text-navy mb-1">Staff Photo</div>
+                  <div className="text-xs text-gray-400 mb-4">
+                    Optional. Take one now, or add it later from the staff profile.
+                  </div>
+                  <PhotoCapture value={form.photo} onChange={(file) => update('photo', file)} allowCamera />
                 </div>
+
+                <div className="pt-4 border-t border-gray-100">
+                  <div className="text-sm font-bold text-navy mb-4">Personal Information</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                    <Field label="Title">
+                      <select className={inputClass} value={form.title} onChange={(e) => update('title', e.target.value)}>
+                        {TITLE_CHOICES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                      </select>
+                    </Field>
+                    <Field label="First Name" required error={errors.first_name}>
+                      <input className={errors.first_name ? inputErrorClass : inputClass} value={form.first_name} onChange={(e) => update('first_name', e.target.value)} />
+                    </Field>
+                    <Field label="Middle Name">
+                      <input className={inputClass} value={form.middle_name} onChange={(e) => update('middle_name', e.target.value)} />
+                    </Field>
+                    <Field label="Last Name" required error={errors.last_name}>
+                      <input className={errors.last_name ? inputErrorClass : inputClass} value={form.last_name} onChange={(e) => update('last_name', e.target.value)} />
+                    </Field>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <Field label="Date of Birth">
                     <input type="date" className={inputClass} value={form.date_of_birth} onChange={(e) => update('date_of_birth', e.target.value)} />
@@ -459,6 +542,7 @@ function StaffRegistrationWizard() {
                     </select>
                   </Field>
                 </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <Field label="Nationality">
                     <input className={inputClass} value={form.nationality} onChange={(e) => update('nationality', e.target.value)} />
@@ -472,31 +556,30 @@ function StaffRegistrationWizard() {
                     </select>
                   </Field>
                 </div>
-
-                <div className="pt-2 border-t border-gray-100" />
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <Field label="Ghana Card Number" required error={errors.ghana_card_number}>
-                  <input className={errors.ghana_card_number ? inputErrorClass : inputClass} placeholder="e.g. GHA-123456789-0" value={form.ghana_card_number} onChange={(e) => update('ghana_card_number', e.target.value)} />
-                  </Field>
-                  <Field label="SSNIT Number">
-                    <input className={inputClass} value={form.ssnit_number} onChange={(e) => update('ssnit_number', e.target.value)} />
-                  </Field>
-                  <Field label="NTC License Number">
-                    <input className={inputClass} value={form.ntc_license_number} onChange={(e) => update('ntc_license_number', e.target.value)} />
-                  </Field>
-                </div>
               </div>
             )}
 
-            {/* STEP 2 — Photo & Fingerprint */}
+            {/* STEP 2 — Identity */}
             {step === 2 && (
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-5">
                 <div>
-                  <div className="text-sm font-bold text-navy mb-1">Staff Photo</div>
-                  <div className="text-xs text-gray-400 mb-4">Take a photo now, or upload one if you already have it.</div>
-                  <PhotoCapture value={form.photo} onChange={(file) => { update('photo', file); setConfirmSkipPhoto(false) }} allowCamera />
+                  <div className="text-sm font-bold text-navy mb-1">Identity &amp; Registration Numbers</div>
+                  <div className="text-xs text-gray-400 mb-4">
+                    The Ghana Card is required. SSNIT and NTC apply only to some staff.
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <Field label="Ghana Card Number" required error={errors.ghana_card_number}>
+                      <input className={errors.ghana_card_number ? inputErrorClass : inputClass} placeholder="e.g. GHA-123456789-0" value={form.ghana_card_number} onChange={(e) => update('ghana_card_number', e.target.value)} />
+                    </Field>
+                    <Field label="SSNIT Number">
+                      <input className={inputClass} value={form.ssnit_number} onChange={(e) => update('ssnit_number', e.target.value)} />
+                    </Field>
+                    <Field label="NTC License Number">
+                      <input className={inputClass} value={form.ntc_license_number} onChange={(e) => update('ntc_license_number', e.target.value)} />
+                    </Field>
+                  </div>
                 </div>
+
                 <div className="pt-4 border-t border-gray-100">
                   <div className="text-sm font-bold text-navy mb-1">Fingerprint Scan</div>
                   <div className="text-xs text-gray-400 mb-4">
@@ -504,31 +587,10 @@ function StaffRegistrationWizard() {
                   </div>
                   <FingerprintUpload value={form.fingerprint_data} onChange={(file) => update('fingerprint_data', file)} />
                 </div>
-
-                {confirmSkipPhoto && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col gap-3">
-                    <div className="text-sm text-amber-800 font-semibold">No photo added — are you sure you want to skip this step?</div>
-                    <div className="text-xs text-amber-700">You can add a photo later from the staff profile.</div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => { setConfirmSkipPhoto(false); setStep(3) }}
-                        className="text-xs font-bold bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition"
-                      >
-                        Skip Anyway
-                      </button>
-                      <button
-                        onClick={() => setConfirmSkipPhoto(false)}
-                        className="text-xs font-semibold text-amber-700 px-4 py-2 rounded-lg hover:bg-amber-100 transition"
-                      >
-                        Go Back
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
-            {/* STEP 3 — Contact & Address */}
+            {/* STEP 3 — Contact & Emergency */}
             {step === 3 && (
               <div className="flex flex-col gap-5">
                 <div className="text-sm font-bold text-navy">Contact &amp; Address</div>
@@ -562,10 +624,18 @@ function StaffRegistrationWizard() {
                     </select>
                   </Field>
                 </div>
+
+                <div className="pt-4 border-t border-gray-100">
+                  <StaffEmergencyContactSection
+                    contacts={form.emergency_contacts}
+                    onChange={(next) => update('emergency_contacts', next)}
+                    errors={errors.emergency_contacts || []}
+                  />
+                </div>
               </div>
             )}
 
-            {/* STEP 4 — Employment & Qualifications */}
+            {/* STEP 4 — Employment */}
             {step === 4 && (
               <div className="flex flex-col gap-5">
                 <div className="text-sm font-bold text-navy">Employment</div>
@@ -580,7 +650,7 @@ function StaffRegistrationWizard() {
                       {TIME_COMMITMENT_CHOICES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                     </select>
                   </Field>
-                    <Field label="Staff Category" required error={errors.staff_category}>
+                  <Field label="Staff Category" required error={errors.staff_category}>
                     <select className={errors.staff_category ? inputErrorClass : inputClass} value={form.staff_category} onChange={(e) => handleCategoryChange(e.target.value)}>
                       {STAFF_CATEGORY_CHOICES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
                     </select>
@@ -596,7 +666,7 @@ function StaffRegistrationWizard() {
                       id="teaches"
                       checked={form.teaches}
                       onChange={(e) => update('teaches', e.target.checked)}
-                      className="mt-0.5 flex-shrink-0"
+                      className="mt-0.5 flex-shrink-0 w-4 h-4 accent-navy"
                     />
                     <label htmlFor="teaches" className="cursor-pointer">
                       <div className="text-sm font-semibold text-navy">This person also teaches classes</div>
@@ -633,16 +703,6 @@ function StaffRegistrationWizard() {
                 )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field label="Salary Grade">
-                    <input className={inputClass} value={form.salary_grade} onChange={(e) => update('salary_grade', e.target.value)} />
-                  </Field>
-                  <Field label="Branch">
-                    <select className={inputClass} value={form.branch || ''} onChange={(e) => update('branch', e.target.value)}>
-                      <option value="">Not specified</option>
-                    </select>
-                  </Field>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Field label="Date of First Appointment">
                     <input type="date" className={inputClass} value={form.date_of_first_appointment} onChange={(e) => update('date_of_first_appointment', e.target.value)} />
                   </Field>
@@ -670,32 +730,21 @@ function StaffRegistrationWizard() {
                 <Field label="Leave Entitlement (days per year)">
                   <input type="number" min="0" className={inputClass} value={form.leave_entitlement_days} onChange={(e) => update('leave_entitlement_days', Number(e.target.value))} />
                 </Field>
-
-                <div className="pt-4 border-t border-gray-100">
-                  <div className="text-sm font-bold text-navy mb-4">Qualifications</div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <Field label="Highest Qualification">
-                      <select className={inputClass} value={form.highest_qualification} onChange={(e) => update('highest_qualification', e.target.value)}>
-                        {QUALIFICATION_CHOICES.map((q) => <option key={q.value} value={q.value}>{q.label}</option>)}
-                      </select>
-                    </Field>
-                    <Field label="Institution Attended">
-                      <input className={inputClass} value={form.institution_attended} onChange={(e) => update('institution_attended', e.target.value)} />
-                    </Field>
-                    <Field label="Years of Experience">
-                      <input type="number" min="0" className={inputClass} value={form.years_of_experience} onChange={(e) => update('years_of_experience', Number(e.target.value))} />
-                    </Field>
-                  </div>
-                </div>
               </div>
             )}
 
-            {/* STEP 5 — Banking & Next of Kin */}
+            {/* STEP 5 — Pay & Qualifications */}
             {step === 5 && (
               <div className="flex flex-col gap-6">
                 <div>
-                  <div className="text-sm font-bold text-navy mb-4">Banking</div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                  <div className="text-sm font-bold text-navy mb-1">Pay</div>
+                  <div className="text-xs text-gray-400 mb-4">
+                    How this person is paid. Leave blank if the school has not decided yet.
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                    <Field label="Salary Grade">
+                      <input className={inputClass} value={form.salary_grade} onChange={(e) => update('salary_grade', e.target.value)} />
+                    </Field>
                     <Field label="Bank Name">
                       <select className={inputClass} value={form.bank_name} onChange={(e) => update('bank_name', e.target.value)}>
                         {BANK_CHOICES.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
@@ -716,90 +765,109 @@ function StaffRegistrationWizard() {
                 </div>
 
                 <div className="pt-4 border-t border-gray-100">
-                  <div className="text-sm font-bold text-navy mb-4">Next of Kin</div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                    <Field label="Full Name">
-                      <input className={inputClass} value={form.next_of_kin_name} onChange={(e) => update('next_of_kin_name', e.target.value)} />
+                  <div className="text-sm font-bold text-navy mb-4">Qualifications</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <Field label="Highest Qualification">
+                      <select className={inputClass} value={form.highest_qualification} onChange={(e) => update('highest_qualification', e.target.value)}>
+                        {QUALIFICATION_CHOICES.map((q) => <option key={q.value} value={q.value}>{q.label}</option>)}
+                      </select>
                     </Field>
-                    <Field label="Relationship">
-                      <input className={inputClass} value={form.next_of_kin_relationship} onChange={(e) => update('next_of_kin_relationship', e.target.value)} />
+                    <Field label="Institution Attended">
+                      <input className={inputClass} value={form.institution_attended} onChange={(e) => update('institution_attended', e.target.value)} />
                     </Field>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Field label="Phone">
-                      <input className={inputClass} value={form.next_of_kin_phone} onChange={(e) => update('next_of_kin_phone', e.target.value)} />
-                    </Field>
-                    <Field label="Address">
-                      <input className={inputClass} value={form.next_of_kin_address} onChange={(e) => update('next_of_kin_address', e.target.value)} />
+                    <Field label="Years of Experience">
+                      <input type="number" min="0" className={inputClass} value={form.years_of_experience} onChange={(e) => update('years_of_experience', Number(e.target.value))} />
                     </Field>
                   </div>
-                </div>
-
-                <div className="pt-4 border-t border-gray-100">
-                  <StaffEmergencyContactSection
-                    contacts={form.emergency_contacts}
-                    onChange={(next) => update('emergency_contacts', next)}
-                    errors={errors.emergency_contacts || []}
-                  />
                 </div>
               </div>
             )}
 
             {/* STEP 6 — Review */}
             {step === 6 && (
-              <div className="flex flex-col gap-6">
-                <div className="flex items-center gap-4 pb-4 border-b border-gray-100">
-                  <div className="w-16 h-16 rounded-2xl bg-navy text-white text-lg font-bold flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {form.photo ? (
-                      <img src={URL.createObjectURL(form.photo)} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      (form.first_name?.[0] || '') + (form.last_name?.[0] || '')
+              <div className="flex flex-col gap-5">
+                <div className="bg-white rounded-2xl border border-gray-200 p-5">
+                  <div className="flex items-start gap-4">
+                    <div className="w-16 h-16 rounded-xl bg-navy text-white text-lg font-bold flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {form.photo ? (
+                        <img src={URL.createObjectURL(form.photo)} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        (form.first_name?.[0] || '') + (form.last_name?.[0] || '')
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-serif text-xl font-bold text-navy truncate">{fullName || 'Unnamed staff member'}</div>
+                      <div className="text-[13px] text-slate-500 mt-1">
+                        {labelFor(STAFF_CATEGORY_CHOICES, form.staff_category) || 'No category'}
+                        {form.position_name && <span> &middot; {form.position_name}</span>}
+                        {form.teaches && <span> &middot; Teaches classes</span>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+                  <ReviewCard icon={icons.contact} title="Contact">
+                    <Row label="Phone" value={form.phone} />
+                    <Row label="WhatsApp" value={form.whatsapp_number} />
+                    <Row label="Other phone" value={form.secondary_phone} />
+                    <Row label="Email" value={form.email} />
+                    <Row label="Address" value={form.residential_address} />
+                    <Row label="Digital address" value={form.digital_address} />
+                    <Row label="City" value={form.city} />
+                    <Row label="Region" value={labelFor(GHANA_REGIONS, form.region)} />
+                  </ReviewCard>
+
+                  <ReviewCard icon={icons.employment} title="Employment">
+                    <Row label="Type" value={labelFor(EMPLOYMENT_TYPE_CHOICES, form.employment_type)} />
+                    <Row label="Commitment" value={labelFor(TIME_COMMITMENT_CHOICES, form.time_commitment)} />
+                    <Row label="Category" value={labelFor(STAFF_CATEGORY_CHOICES, form.staff_category)} />
+                    <Row label="Position" value={form.position_name} />
+                    <Row label="First appointed" value={formatDate(form.date_of_first_appointment)} />
+                    <Row label="Joined school" value={formatDate(form.date_joined_school)} />
+                    <Row label="On probation" value={form.is_on_probation ? 'Yes' : 'No'} />
+                    <Row label="Leave entitlement" value={`${form.leave_entitlement_days} days`} />
+                  </ReviewCard>
+
+                  <ReviewCard icon={icons.identity} title="Identity">
+                    <Row label="Date of birth" value={formatDate(form.date_of_birth)} />
+                    <Row label="Gender" value={labelFor(GENDER_CHOICES, form.gender)} />
+                    <Row label="Nationality" value={form.nationality} />
+                    <Row label="Marital status" value={labelFor(MARITAL_STATUS_CHOICES, form.marital_status)} />
+                    <Row label="Ghana Card" value={form.ghana_card_number} />
+                    <Row label="SSNIT" value={form.ssnit_number} />
+                    <Row label="NTC licence" value={form.ntc_license_number} />
+                    <Row label="Blood group" value={form.blood_group === 'unknown' ? '' : form.blood_group} />
+                  </ReviewCard>
+
+                  <ReviewCard icon={icons.qualifications} title="Qualifications">
+                    <Row label="Highest" value={labelFor(QUALIFICATION_CHOICES, form.highest_qualification)} />
+                    <Row label="Institution" value={form.institution_attended} />
+                    <Row label="Experience" value={`${form.years_of_experience} years`} />
+                    <Row label="Subjects" value={selectedSubjectNames.join(', ')} />
+                  </ReviewCard>
+
+                  <ReviewCard icon={icons.pay} title="Pay">
+                    <Row label="Salary grade" value={form.salary_grade} />
+                    <Row label="Bank" value={labelFor(BANK_CHOICES, form.bank_name)} />
+                    <Row label="Branch" value={form.bank_branch} />
+                    <Row label="Account number" value={form.bank_account_number} />
+                    <Row label="MoMo number" value={form.momo_number} />
+                  </ReviewCard>
+
+                  <ReviewCard icon={icons.emergency} title="Emergency contact">
+                    <Row label="Name" value={primaryContact.full_name} />
+                    <Row label="Relationship" value={primaryContact.relationship} />
+                    <Row label="Phone" value={primaryContact.phone} />
+                    <Row label="WhatsApp" value={primaryContact.whatsapp_number} />
+                    {form.emergency_contacts.length > 1 && (
+                      <Row label="Other contacts" value={`${form.emergency_contacts.length - 1} more`} />
                     )}
-                  </div>
-                  <div>
-                    <div className="font-serif text-lg font-bold text-navy">
-                      {TITLE_CHOICES.find((t) => t.value === form.title)?.label || ''} {form.first_name} {form.middle_name} {form.last_name}
-                    </div>
-                    <div className="text-xs text-gray-500">{form.gender} Â· {form.phone}</div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Personal</div>
-                  <div className="text-sm text-navy grid grid-cols-1 sm:grid-cols-2 gap-1">
-                    <div>Nationality: {form.nationality || '—'}</div>
-                    <div>Marital Status: {form.marital_status || '—'}</div>
-                    <div>Ghana Card: {form.ghana_card_number || '—'}</div>
-                    <div>SSNIT: {form.ssnit_number || '—'}</div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Employment</div>
-                  <div className="text-sm text-navy grid grid-cols-1 sm:grid-cols-2 gap-1">
-                    <div>Type: {EMPLOYMENT_TYPE_CHOICES.find((e) => e.value === form.employment_type)?.label}</div>
-                    <div>Commitment: {TIME_COMMITMENT_CHOICES.find((t) => t.value === form.time_commitment)?.label}</div>
-                    <div>Category: {form.staff_category || '—'}</div>
-                    <div>Position: {form.position_name || '—'}</div>
-                  </div>
-                  {selectedSubjectNames.length > 0 && (
-                    <div className="text-xs text-gray-500 mt-1">Subjects: {selectedSubjectNames.join(', ')}</div>
-                  )}
-                </div>
-
-                <div>
-                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Emergency Contact</div>
-                  {form.emergency_contacts.length === 0 ? (
-                    <div className="text-sm text-gray-400">None added</div>
-                  ) : (
-                    <div className="text-sm text-navy">
-                    {form.emergency_contacts[0].full_name} &middot; {form.emergency_contacts[0].phone}
-                    </div>
-                  )}
+                  </ReviewCard>
                 </div>
 
                 {submitError && (
-                  <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-3">
+                  <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
                     {submitError}
                   </div>
                 )}
@@ -807,7 +875,7 @@ function StaffRegistrationWizard() {
             )}
           </div>
 
-          <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
+          <div className={`flex items-center justify-between mt-8 pt-6 ${step === 6 ? '' : 'border-t border-gray-100'}`}>
             <button
               onClick={goBack}
               disabled={step === 1}
