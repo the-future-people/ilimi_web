@@ -155,8 +155,8 @@ function Field({ label, required, error, children }) {
   )
 }
 
-const inputClass = "px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-gold"
-const inputErrorClass = "px-3 py-2.5 border border-red-300 rounded-lg text-sm outline-none focus:border-red-400"
+const inputClass = "px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-gold"
+const inputErrorClass = "px-3 py-2.5 bg-white border border-red-300 rounded-lg text-sm outline-none focus:border-red-400"
 
 // ── Review cards ──────────────────────────────────────────────────────────
 // Deliberately mirrors the staff detail page, so what an administrator
@@ -428,7 +428,7 @@ function StaffRegistrationWizard() {
   ].filter(Boolean).join(' ')
 
   return (
-        <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-100">
       <PortalHeader />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-8">
@@ -484,7 +484,7 @@ function StaffRegistrationWizard() {
           ))}
         </div>
 
-          <div className={step === 6 ? '' : 'bg-[#f0ece1] rounded-2xl shadow-lg p-5 sm:p-8'}>
+          <div className={step === 6 ? '' : 'bg-[#faf8f4] rounded-2xl shadow-lg p-5 sm:p-8'}>
           <div
             className="transition-all duration-200 ease-out"
             style={{
