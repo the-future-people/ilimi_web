@@ -20,3 +20,10 @@ export const acceptStaffInvite = async (token, payload) => {
   const res = await publicApi.post(`/auth/staff/setup/${token}/`, payload)
   return res.data
 }
+
+export const checkUsername = async (username) => {
+  const res = await publicApi.get('/auth/username-available/', {
+    params: { username },
+  })
+  return res.data
+}
