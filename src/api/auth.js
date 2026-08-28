@@ -43,6 +43,30 @@ export async function checkAvailability(field, value) {
   return response.data
 }
 
+export async function requestPasswordReset(phoneNumber) {
+  const response = await api.post('/auth/password/reset/', {
+    phone_number: phoneNumber,
+  })
+  return response.data
+}
+
+export async function verifyPasswordResetCode(phoneNumber, code) {
+  const response = await api.post('/auth/password/reset/verify/', {
+    phone_number: phoneNumber,
+    code,
+  })
+  return response.data
+}
+
+export async function completePasswordReset(ticket, newPassword, confirmPassword) {
+  const response = await api.post('/auth/password/reset/complete/', {
+    ticket,
+    new_password: newPassword,
+    confirm_password: confirmPassword,
+  })
+  return response.data
+}
+
 export function logout() {
   localStorage.removeItem('access_token')
   localStorage.removeItem('refresh_token')

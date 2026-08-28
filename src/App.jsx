@@ -24,6 +24,7 @@ import CollectPayment from './pages/accountant/CollectPayment'
 import RegistrarPortal from './pages/registrar/RegistrarPortal'
 import GuardianManagement from './pages/registrar/GuardianManagement'
 import StaffSetup from './pages/StaffSetup'
+import ForgotPassword from './pages/ForgotPassword'
 import StaffDetail from './pages/admin/StaffDetail'
 const ADMIN_ROLES = ['school_admin', 'branch_manager']
 
@@ -61,6 +62,7 @@ function App() {
       <Route path="/redirect" element={<RoleRedirect />} />
       <Route path="/enrol/:token" element={<PublicEnrolForm />} />
       <Route path="/staff/setup/:token" element={<StaffSetup />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
 
       {/* ── Admin ──────────────────────────────────────────────── */}
       <Route
