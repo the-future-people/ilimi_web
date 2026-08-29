@@ -1,4 +1,4 @@
-import { Link, useSearchParams } from 'react-router-dom'
+﻿import { Link, useSearchParams } from 'react-router-dom'
 import Breadcrumb from '../../components/layout/Breadcrumb'
 import { useQuery } from '@tanstack/react-query'
 import PortalHeader from '../../components/layout/PortalHeader'
@@ -7,6 +7,7 @@ import { getAllStaff } from '../../api/staff'
 import StaffList from './StaffList'
 import StaffRegisterTab from './StaffRegisterTab'
 import AssignmentTab from './AssignmentTab'
+import { dashboardPath } from '../../constants/permissions'
 
 const TABS = [
   { key: 'directory', label: 'Directory' },
@@ -22,7 +23,7 @@ function AssignmentComingSoon() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
         </svg>
       </div>
-      <div className="text-sm font-bold text-navy mb-1">Staff Assignment — coming soon</div>
+      <div className="text-sm font-bold text-navy mb-1">Staff Assignment â€” coming soon</div>
       <p className="text-xs text-gray-400 max-w-sm mx-auto">
         Assign form teachers to classes and teachers to subjects, all in one place.
         This is next on the roadmap for the staff module.

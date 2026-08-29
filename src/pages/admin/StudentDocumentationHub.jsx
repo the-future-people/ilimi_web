@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import Breadcrumb from '../../components/layout/Breadcrumb'
 import { useAuth } from '../../context/AuthContext'
@@ -8,6 +8,7 @@ import { getDocumentTemplates, getGeneratedDocuments, previewDocument, generateD
 import PortalHeader from '../../components/layout/PortalHeader'
 import { API_BASE_URL } from '../../config'
 import { ADMISSIONS_TAB } from '../../constants/nav'
+import { dashboardPath } from '../../constants/permissions'
 
 const DOCUMENT_TYPE_LABELS = {
   recommendation_letter: 'Recommendation Letters',
@@ -145,7 +146,7 @@ function TypeGridCard({ type, label, count, templateCount, lastGeneratedDate, on
               {templateCount}
             </span>
           </div>
-          <span className="text-[11px]">{lastGeneratedDate || '—'}</span>
+          <span className="text-[11px]">{lastGeneratedDate || 'â€”'}</span>
         </div>
       </div>
     </button>
@@ -263,11 +264,11 @@ export default function StudentDocumentationHub() {
   const selectedTemplate = typeTemplates.find((t) => String(t.id) === String(selectedTemplateId))
 
   const formatDate = (dateStr) => {
-    if (!dateStr) return '—'
+    if (!dateStr) return 'â€”'
     return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
   }
 
-  const initials = (name) => name ? name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase() : '—'
+  const initials = (name) => name ? name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase() : 'â€”'
 
   const resetModal = () => {
     setModalStep(STEPS.STUDENT)
@@ -553,7 +554,7 @@ export default function StudentDocumentationHub() {
                             {doc.student_name}
                           </Link>
                           <div className="text-xs text-gray-400">
-                            {doc.student_id_number} Â· Issued {formatDate(doc.generated_at)} by {doc.generated_by_name || 'Unknown'}
+                            {doc.student_id_number} Ã‚Â· Issued {formatDate(doc.generated_at)} by {doc.generated_by_name || 'Unknown'}
                           </div>
                         </div>
                         <a

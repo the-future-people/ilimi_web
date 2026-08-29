@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import Breadcrumb from '../../components/layout/Breadcrumb'
@@ -10,6 +10,7 @@ import DocumentsTab from './DocumentsTab'
 import { API_BASE_URL } from '../../config'
 import { STUDENTS_TAB } from '../../constants/nav'
 import PhotoCapture from '../../components/PhotoCapture'
+import { dashboardPath } from '../../constants/permissions'
 
 const tabs = [
   { key: 'overview', label: 'Overview' },

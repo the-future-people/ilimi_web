@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Breadcrumb from '../../components/layout/Breadcrumb'
 import { useAuth } from '../../context/AuthContext'
@@ -11,16 +11,17 @@ import {
 } from '../../api/students'
 import { API_BASE_URL } from '../../config'
 import { ADMISSIONS_TAB } from '../../constants/nav'
+import { dashboardPath } from '../../constants/permissions'
 
 const inputClass = "px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-gold"
 
 function formatDate(dateStr) {
-  if (!dateStr) return '—'
+  if (!dateStr) return 'â€”'
   return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
 function initials(name) {
-  return name ? name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase() : '—'
+  return name ? name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase() : 'â€”'
 }
 
 export default function OnboardingCenter() {
@@ -207,7 +208,7 @@ export default function OnboardingCenter() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-bold text-navy">{invite.prospective_first_name} {invite.prospective_last_name}</div>
-                    <div className="text-xs text-gray-400">Submitted {formatDate(invite.submitted_at)} Â· Parent: {invite.parent_phone}</div>
+                    <div className="text-xs text-gray-400">Submitted {formatDate(invite.submitted_at)} Ã‚Â· Parent: {invite.parent_phone}</div>
                   </div>
                   <button
                     onClick={() => openReview(invite)}
@@ -244,7 +245,7 @@ export default function OnboardingCenter() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-navy">{student.full_name}</div>
-                    <div className="text-xs text-gray-400">{student.student_id}{student.classroom_name ? ` Â· ${student.classroom_name}` : ''}</div>
+                    <div className="text-xs text-gray-400">{student.student_id}{student.classroom_name ? ` Ã‚Â· ${student.classroom_name}` : ''}</div>
                   </div>
                   <Link
                     to={`/admin/students/${student.id}`}
@@ -337,7 +338,7 @@ export default function OnboardingCenter() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => !reviewLoading && closeReview()}>
           <div className="bg-white rounded-2xl p-5 w-full max-w-lg max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="font-serif text-lg font-bold text-navy mb-1">
-              Review — {reviewInvite.prospective_first_name} {reviewInvite.prospective_last_name}
+              Review â€” {reviewInvite.prospective_first_name} {reviewInvite.prospective_last_name}
             </div>
             <div className="text-xs text-gray-400 mb-4">Submitted {formatDate(reviewInvite.submitted_at)}</div>
 
@@ -350,8 +351,8 @@ export default function OnboardingCenter() {
                     <div>DOB: {submittedData.date_of_birth}</div>
                     <div>Gender: {submittedData.gender}</div>
                     <div>Nationality: {submittedData.nationality}</div>
-                    <div>Home Town: {submittedData.home_town || '—'}</div>
-                    <div>Religion: {submittedData.religion || '—'}</div>
+                    <div>Home Town: {submittedData.home_town || 'â€”'}</div>
+                    <div>Religion: {submittedData.religion || 'â€”'}</div>
                   </div>
                 </div>
                 <div>
@@ -359,7 +360,7 @@ export default function OnboardingCenter() {
                   <div className="flex flex-col gap-1.5">
                     {(submittedData.guardians || []).map((g, i) => (
                       <div key={i} className="text-sm text-navy">
-                        {g.first_name} {g.last_name} <span className="text-gray-400 capitalize">({g.relationship})</span> Â· {g.phone}
+                        {g.first_name} {g.last_name} <span className="text-gray-400 capitalize">({g.relationship})</span> Ã‚Â· {g.phone}
                         {g.is_primary && <span className="ml-1.5 text-[10px] font-semibold bg-gold/10 text-amber-700 px-1.5 py-0.5 rounded-full">Primary</span>}
                       </div>
                     ))}

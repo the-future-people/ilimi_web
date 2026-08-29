@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import PortalHeader from '../../components/layout/PortalHeader'
@@ -7,9 +7,10 @@ import { getStaffDetail } from '../../api/staff'
 import { inviteStaff } from '../../api/staffAccess'
 import { useAuth } from '../../context/AuthContext'
 import { API_BASE_URL } from '../../config'
+import { dashboardPath } from '../../constants/permissions'
 
 // Temporary. These should come from the school's own roles, so a school
-// that renames Administrator sees its own wording — needs a roles endpoint.
+// that renames Administrator sees its own wording â€” needs a roles endpoint.
 const ROLE_OPTIONS = [
   { value: 'teacher', label: 'Teacher' },
   { value: 'academics', label: 'Head of Academics' },
@@ -98,7 +99,7 @@ function PortalAccessPanel({ staff, onInvited }) {
           <span className="text-green-700"><Icon d={ICONS.key} /></span>
           <div>
             <div className="text-[13px] font-semibold text-green-900">
-              Portal access active · {access.role_display}
+              Portal access active Â· {access.role_display}
             </div>
             <div className="text-[11px] text-green-700 mt-0.5">Signs in with {access.email}</div>
           </div>
@@ -164,7 +165,7 @@ function PortalAccessPanel({ staff, onInvited }) {
       {link && (
         <div className="mt-2.5 bg-white border border-gray-200 rounded-lg px-3 py-2">
           <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1">
-            Setup link — send this to them
+            Setup link â€” send this to them
           </div>
           <div className="flex items-center gap-2">
             <input
@@ -260,7 +261,7 @@ function StaffDetail() {
               </div>
               <div className="text-xs text-gray-500 mt-0.5">
                 {[staff.staff_id, titleCase(staff.staff_category), titleCase(staff.time_commitment)]
-                  .filter(Boolean).join(' · ')}
+                  .filter(Boolean).join(' Â· ')}
               </div>
               <div className="flex gap-1.5 mt-2 flex-wrap">
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${
@@ -353,7 +354,7 @@ function StaffDetail() {
               <Row
                 key={c.id}
                 label={`${c.full_name}${c.is_primary ? ' (primary)' : ''}`}
-                value={`${c.relationship} · ${c.phone}`}
+                value={`${c.relationship} Â· ${c.phone}`}
               />
             ))}
           </Card>

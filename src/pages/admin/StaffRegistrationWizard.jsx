@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Breadcrumb from '../../components/layout/Breadcrumb'
 import { useAuth } from '../../context/AuthContext'
@@ -11,6 +11,7 @@ import FingerprintUpload from '../../components/FingerprintUpload'
 import PositionTypeahead from '../../components/PositionTypeahead'
 import StaffEmergencyContactSection from '../../components/StaffEmergencyContactSection'
 import { STAFF_REGISTER_TAB } from '../../constants/nav'
+import { dashboardPath } from '../../constants/permissions'
 
 const TITLE_CHOICES = [
   { value: '', label: 'Select...' },
@@ -158,7 +159,7 @@ function Field({ label, required, error, children }) {
 const inputClass = "px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-gold"
 const inputErrorClass = "px-3 py-2.5 bg-white border border-red-300 rounded-lg text-sm outline-none focus:border-red-400"
 
-// ── Review cards ──────────────────────────────────────────────────────────
+// â”€â”€ Review cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Deliberately mirrors the staff detail page, so what an administrator
 // confirms here is what they will see on the record afterwards.
 
@@ -235,24 +236,24 @@ function StaffRegistrationWizard() {
   const subjects = subjectsData?.data?.subjects || subjectsData?.data || []
 
   const [form, setForm] = useState({
-    // Step 1 — Personal
+    // Step 1 â€” Personal
     photo: null,
     title: '', first_name: '', middle_name: '', last_name: '', date_of_birth: '',
     gender: '', nationality: 'Ghanaian', marital_status: '', number_of_dependants: 0,
     blood_group: 'unknown',
-    // Step 2 — Identity
+    // Step 2 â€” Identity
     ghana_card_number: '', ssnit_number: '', ntc_license_number: '',
     fingerprint_data: null,
-    // Step 3 — Contact & Emergency
+    // Step 3 â€” Contact & Emergency
     phone: '', whatsapp_number: '', secondary_phone: '', email: '',
     residential_address: '', digital_address: '', city: '', region: '',
     emergency_contacts: [{ full_name: '', relationship: '', phone: '', whatsapp_number: '' }],
-    // Step 4 — Employment
+    // Step 4 â€” Employment
     employment_type: 'permanent', time_commitment: 'full_time', staff_category: '', teaches: false,
     position_name: '', branch: '', date_of_first_appointment: '', date_joined_school: '',
     is_on_probation: false, probation_end_date: '', is_head_of_department: false,
     leave_entitlement_days: 21, subject_specializations: [],
-    // Step 5 — Pay & Qualifications
+    // Step 5 â€” Pay & Qualifications
     salary_grade: '', bank_name: '', bank_branch: '', bank_account_number: '', momo_number: '',
     highest_qualification: '', institution_attended: '', years_of_experience: 0,
   })
@@ -493,7 +494,7 @@ function StaffRegistrationWizard() {
             }}
           >
 
-            {/* STEP 1 — Personal */}
+            {/* STEP 1 â€” Personal */}
             {step === 1 && (
               <div className="flex flex-col gap-5">
                                 <div className="text-sm font-bold text-navy">Personal Information</div>
@@ -565,7 +566,7 @@ function StaffRegistrationWizard() {
               </div>
             )}
 
-            {/* STEP 2 — Identity */}
+            {/* STEP 2 â€” Identity */}
             {step === 2 && (
               <div className="flex flex-col gap-5">
                 <div>
@@ -589,14 +590,14 @@ function StaffRegistrationWizard() {
                 <div className="pt-4 border-t border-gray-100">
                   <div className="text-sm font-bold text-navy mb-1">Fingerprint Scan</div>
                   <div className="text-xs text-gray-400 mb-4">
-                    Optional for now — upload a scan if you have compatible hardware.
+                    Optional for now â€” upload a scan if you have compatible hardware.
                   </div>
                   <FingerprintUpload value={form.fingerprint_data} onChange={(file) => update('fingerprint_data', file)} />
                 </div>
               </div>
             )}
 
-            {/* STEP 3 — Contact & Emergency */}
+            {/* STEP 3 â€” Contact & Emergency */}
             {step === 3 && (
               <div className="flex flex-col gap-5">
                 <div className="text-sm font-bold text-navy">Contact &amp; Address</div>
@@ -641,7 +642,7 @@ function StaffRegistrationWizard() {
               </div>
             )}
 
-            {/* STEP 4 — Employment */}
+            {/* STEP 4 â€” Employment */}
             {step === 4 && (
               <div className="flex flex-col gap-5">
                 <div className="text-sm font-bold text-navy">Employment</div>
@@ -739,7 +740,7 @@ function StaffRegistrationWizard() {
               </div>
             )}
 
-            {/* STEP 5 — Pay & Qualifications */}
+            {/* STEP 5 â€” Pay & Qualifications */}
             {step === 5 && (
               <div className="flex flex-col gap-6">
                 <div>
@@ -789,7 +790,7 @@ function StaffRegistrationWizard() {
               </div>
             )}
 
-            {/* STEP 6 — Review */}
+            {/* STEP 6 â€” Review */}
             {step === 6 && (
               <div className="flex flex-col gap-5">
                 <div className="bg-white rounded-2xl border border-gray-200 p-5">

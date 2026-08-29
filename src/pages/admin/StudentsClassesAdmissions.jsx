@@ -1,4 +1,4 @@
-import { Link, useSearchParams } from 'react-router-dom'
+﻿import { Link, useSearchParams } from 'react-router-dom'
 import Breadcrumb from '../../components/layout/Breadcrumb'
 import { useQuery } from '@tanstack/react-query'
 import PortalHeader from '../../components/layout/PortalHeader'
@@ -7,6 +7,7 @@ import { getAllStudents } from '../../api/students'
 import StudentList from './StudentList'
 import ClassesTab from './ClassesTab'
 import AdmissionsTab from './AdmissionsTab'
+import { dashboardPath } from '../../constants/permissions'
 
 const TABS = [
   { key: 'students', label: 'Students' },
