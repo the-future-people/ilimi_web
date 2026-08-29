@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext'
 import { getSchoolClassrooms } from '../../api/academics'
 import { getAllStudents } from '../../api/students'
 import { getAllStaff } from '../../api/staff'
+import { dashboardPath } from '../../constants/permissions'
 import {
   getExcursions, createExcursion, requestExcursionConsent,
   getConsentRequests, createConsentRequest,
@@ -906,7 +907,7 @@ export default function CommunicationsCenter() {
         <Breadcrumb items={[
           {
             label: 'Dashboard',
-            href: activeMember?.role === 'registrar' ? '/registrar' : activeMember?.role === 'accountant' ? '/accountant' : '/admin',
+            href: dashboardPath(activeMember),
             icon: (
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -940,7 +941,7 @@ export default function CommunicationsCenter() {
         </div>
 
         {activeTab === 'communications' && (
-          <CommunicationsPlaceholder isAdminTier={activeMember?.role === 'school_admin' || activeMember?.role === 'branch_manager'} />
+                    <CommunicationsPlaceholder isAdminTier={isAdminTier(activeMember)} />
         )}
 
         {activeTab === 'consents' && (

@@ -28,7 +28,7 @@ function ProtectedRoute({ children, requiredRole, requiredDomain, requiredLevel 
       return <Navigate to="/redirect" replace />
     }
   }
-  if (requiredDomain && !hasDomainAccess(activeMember.role, requiredDomain, requiredLevel)) {
+  if (requiredDomain && !hasDomainAccess(activeMember, requiredDomain, requiredLevel)) {
     return <Navigate to="/redirect" replace />
   }
   return children

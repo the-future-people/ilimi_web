@@ -8,13 +8,15 @@ import { inviteStaff } from '../../api/staffAccess'
 import { useAuth } from '../../context/AuthContext'
 import { API_BASE_URL } from '../../config'
 
+// Temporary. These should come from the school's own roles, so a school
+// that renames Administrator sees its own wording — needs a roles endpoint.
 const ROLE_OPTIONS = [
   { value: 'teacher', label: 'Teacher' },
-  { value: 'head_of_academics', label: 'Head of Academics' },
-  { value: 'registrar', label: 'Registrar' },
-  { value: 'accountant', label: 'Accountant' },
-  { value: 'branch_manager', label: 'Branch Manager' },
-  { value: 'school_admin', label: 'School Administrator' },
+  { value: 'academics', label: 'Head of Academics' },
+  { value: 'administrator', label: 'Administrator' },
+  { value: 'accounts', label: 'Accounts Office' },
+  { value: 'assistant_head', label: 'Assistant Head Teacher' },
+  { value: 'proprietor', label: 'Proprietor' },
 ]
 
 const fmtDate = (iso) =>
@@ -238,7 +240,7 @@ function StaffDetail() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-6">
         <Breadcrumb
           items={[
-            { label: 'Dashboard', href: activeMember?.role === 'registrar' ? '/registrar' : '/admin' },
+            { label: 'Dashboard', href: dashboardPath(activeMember) },
             { label: 'Teachers & Staff', href: '/admin/staff' },
             { label: staff.full_name },
           ]}

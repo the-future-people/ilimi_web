@@ -1,28 +1,37 @@
-// Mirrors apps/tenants/permissions.py — keep both in sync by hand.
-// A domain not listed for a role means NO access, not read-only.
+// Permissions come from the API now, on each membership, because roles and
+// their bundles live in the database per school — a school with no accounts
+// office gives fees to its administrator, and no static table here could
+// know that. Nothing to keep in sync by hand any more.
 
-export const DOMAINS = [
-  'students', 'staff', 'attendance', 'fees',
-  'communications', 'documents', 'reports', 'parents',
-]
+export const LEVEL_RANK = { view: 1, request: 2, full: 3 }
 
-export const ROLE_PERMISSIONS = {
-  school_admin:   Object.fromEntries(DOMAINS.map((d) => [d, 'full'])),
-  branch_manager: Object.fromEntries(DOMAINS.map((d) => [d, 'full'])),
-  accountant:     { fees: 'full' },
-  registrar:      { students: 'full', staff: 'full', documents: 'full', reports: 'full', parents: 'full' },
-  teacher:        {}, // teachers use the separate /teacher/* route tree
-  receptionist:   {}, // reserved, unused
+// Roles that run or oversee the whole school rather than one domain.
+export const OVERSIGHT_ROLES = ['proprietor', 'assistant_head']
+
+export function hasDomainAccess(member, domain, level = 'full') {
+  const granted = member?.permissions?.[domain]
+  if (!granted) return false
+  return (LEVEL_RANK[granted] || 0) >= (LEVEL_RANK[level] || 99)
 }
 
-export function hasDomainAccess(role, domain, level = 'full') {
-  if (!role) return false
-  return ROLE_PERMISSIONS[role]?.[domain] === level
+export function domainsForMember(member) {
+  return Object.keys(member?.permissions || {}).sort()
 }
 
-export function domainsForRole(role) {
-  const perms = ROLE_PERMISSIONS[role] || {}
-  return Object.entries(perms)
-    .filter(([, level]) => level === 'full')
-    .map(([domain]) => domain)
+export function isAdminTier(member) {
+  return OVERSIGHT_ROLES.includes(member?.role)
+}
+
+// Where this member's dashboard lives. Repeated in eight files before this.
+export function dashboardPath(member) {
+  switch (member?.role) {
+    case 'teacher':
+      return '/teacher'
+    case 'accounts':
+      return '/accountant'
+    case 'administrator':
+      return '/registrar'
+    default:
+      return '/admin'
+  }
 }
