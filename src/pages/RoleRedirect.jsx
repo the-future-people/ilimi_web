@@ -1,16 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-
-const roleRoutes = {
-  school_admin: '/admin',
-  branch_manager: '/admin',
-  teacher: '/teacher',
-  accountant: '/accountant',
-  registrar: '/registrar',
-  receptionist: '/receptionist',
-  parent: '/parent',
-}
+import { dashboardPath } from '../constants/permissions'
 
 function RoleRedirect() {
   const { activeMember } = useAuth()
@@ -22,8 +13,7 @@ function RoleRedirect() {
       return
     }
 
-    const path = roleRoutes[activeMember.role] || '/login'
-    navigate(path)
+      navigate(dashboardPath(activeMember))
   }, [activeMember, navigate])
 
   return (
